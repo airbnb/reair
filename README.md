@@ -42,7 +42,7 @@ cd reair
 ./gradlew shadowjar -p main -x test
 ```
 
-* Create a local text file containing the tables that you want to copy. A row in the text file should consist of the DB name and the table name separated by a period. e.g.
+* Create a local text file containing the tables that you want to copy and put it  on destination hdfs,  A row in the text file should consist of the DB name and the table name separated by a period. e.g.
 
 ```
 my_db1.my_table1
