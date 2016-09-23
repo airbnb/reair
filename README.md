@@ -47,6 +47,7 @@ cd reair
 ```
 my_db1.my_table1
 my_db2.my_table2
+hadoop fs -put table /table
 ```
 
 * Launch the job using the `hadoop jar` command on the destination, specifying the config file and the list of tables to copy. A larger heap for the client may be needed for large batches, so set `HADOOP_HEAPSIZE` appropriately. Also, depending on how the warehouse is set up, you may need to run the process as a different user (e.g. `hive`).
@@ -54,7 +55,7 @@ my_db2.my_table2
 ```
 export HADOOP_OPTS="-Dlog4j.configuration=file://<path to log4j.properties>"
 export HADOOP_HEAPSIZE=8096
-sudo -u hive hadoop jar main/build/libs/airbnb-reair-main-1.0.0-all.jar com.airbnb.reair.batch.hive.MetastoreReplicationJob --config-files my_config_file.xml --table-list my_tables_to_copy.txt
+sudo -u hive hadoop jar main/build/libs/airbnb-reair-main-1.0.0-all.jar com.airbnb.reair.batch.hive.MetastoreReplicationJob --config-files my_config_file.xml --table-list  /table
 ```
 
 * Additional CLI Options: `--step`, `--override-input`. These arguments are useful if want to run one of the three MR job individually for faster failure recovery. `--step` indicates which step to run. `--override-input` provides the path for the input when running the second and third stage MR jobs. The input path will usually be the output for the first stage MR job.
