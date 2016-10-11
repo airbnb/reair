@@ -3,6 +3,6 @@ Please use [pull requests](https://github.com/airbnb/aerosolve/pull/new/master) 
 Organizations
 ----------
  - [Airbnb](https://github.com/airbnb)
-
+ - [Rakuten Affiliate Network](http://marketing.rakuten.com/affiliate-marketing)
 Projects
 ----------
