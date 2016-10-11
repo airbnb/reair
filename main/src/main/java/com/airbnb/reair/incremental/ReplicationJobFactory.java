@@ -487,7 +487,8 @@ public class ReplicationJobFactory {
     // broken as per HIVE-12865. This workaround is to parse the exchange
     // partition command to figure out what the input and output partitions
     // are.
-    if (auditLogEntry.getOutputTables().size() == 0 && auditLogEntry.getCommandType() == null) {
+    if (auditLogEntry.getOutputTables().size() == 0
+        && auditLogEntry.getCommandType() == HiveOperation.ALTERTABLE_EXCHANGEPARTITION) {
       // This is probably an exchange partition command
       ExchangePartitionParser parser = new ExchangePartitionParser();
       boolean parsed = parser.parse(auditLogEntry.getCommand());

@@ -141,10 +141,6 @@ public class AuditLogReader {
       return null;
     }
 
-    if ("ALTERTABLE_EXCHANGEPARTITION".equals(operation)) {
-      return null;
-    }
-
     try {
       return HiveOperation.valueOf(operation);
     } catch (IllegalArgumentException e) {
