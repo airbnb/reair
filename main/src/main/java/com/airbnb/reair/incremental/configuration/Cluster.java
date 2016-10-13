@@ -12,6 +12,8 @@ import org.apache.hadoop.fs.Path;
 public interface Cluster {
   HiveMetastoreClient getMetastoreClient() throws HiveMetastoreException;
 
+  HiveMetastoreClient reconnectMetastoreClient() throws HiveMetastoreException;
+
   Path getFsRoot();
 
   Path getTmpDir();
