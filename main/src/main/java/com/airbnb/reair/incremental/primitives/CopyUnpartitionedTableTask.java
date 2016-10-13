@@ -119,7 +119,7 @@ public class CopyUnpartitionedTableTask implements ReplicationTask {
     Optional<Path> destPath = ReplicationUtils.getLocation(destTable);
 
     boolean needToCopy = srcPath.isPresent() && !srcPath.equals(destPath)
-        && !directoryCopier.equalDirs(srcPath.get(), destPath.get());
+        && !directoryCopier.equalDirsExcludeHiddenFile(srcPath.get(), destPath.get());
 
     long bytesCopied = 0;
 

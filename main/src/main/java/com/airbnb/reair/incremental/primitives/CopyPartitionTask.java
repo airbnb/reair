@@ -19,6 +19,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 
@@ -174,17 +175,17 @@ public class CopyPartitionTask implements ReplicationTask {
         Path copiedPartitionDataLocation = new Path(optimisticCopyRoot.get(),
             StringUtils.stripStart(srcLocation.toUri().getPath(), "/"));
 
-        if (directoryCopier.equalDirs(srcLocation, copiedPartitionDataLocation)) {
+        if (directoryCopier.equalDirsExcludeHiddenFile(srcLocation, copiedPartitionDataLocation)) {
           // In this case, the data is there and we can move the
           // directory to the expected location.
           Path destinationPath = new Path(destPartition.getSd().getLocation());
 
           FsUtils.replaceDirectory(conf, copiedPartitionDataLocation, destinationPath);
         } else {
-          needToCopy = !directoryCopier.equalDirs(srcPath.get(), destPath.get());
+          needToCopy = !directoryCopier.equalDirsExcludeHiddenFile(srcPath.get(), destPath.get());
         }
       } else {
-        needToCopy = !directoryCopier.equalDirs(srcPath.get(), destPath.get());;
+        needToCopy = !directoryCopier.equalDirsExcludeHiddenFile(srcPath.get(), destPath.get());
       }
     }
 
