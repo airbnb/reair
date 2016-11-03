@@ -401,6 +401,10 @@ public class MetastoreReplicationJob extends Configured implements Tool {
     FileOutputFormat.setOutputPath(job, output);
     FileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
 
+    job.setNumReduceTasks(getConf().getInt(
+            ConfigurationKeys.BATCH_JOB_METASTORE_PARALLELISM,
+            150));
+
     boolean success = job.waitForCompletion(true);
 
     return success ? 0 : 1;
@@ -522,10 +526,6 @@ public class MetastoreReplicationJob extends Configured implements Tool {
 
     FileOutputFormat.setOutputPath(job, output);
     FileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
-
-    job.setNumReduceTasks(getConf().getInt(
-        ConfigurationKeys.BATCH_JOB_METASTORE_PARALLELISM,
-        150));
 
     boolean success = job.waitForCompletion(true);
 
