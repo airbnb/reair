@@ -317,6 +317,7 @@ public class MetastoreReplicationJob extends Configured implements Tool {
         ConfigurationKeys.DEST_CLUSTER_METASTORE_URL,
         ConfigurationKeys.DEST_HDFS_ROOT,
         ConfigurationKeys.DEST_HDFS_TMP,
+        ConfigurationKeys.DEST_CLUSTER_METASTORE_DB_PREFIX,
         ConfigurationKeys.BATCH_JOB_METASTORE_BLACKLIST,
         ConfigurationKeys.BATCH_JOB_CLUSTER_FACTORY_CLASS,
         ConfigurationKeys.BATCH_JOB_OUTPUT_DIR,

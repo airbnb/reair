@@ -2,8 +2,8 @@ package com.airbnb.reair.incremental.deploy;
 
 import com.airbnb.reair.common.ArgumentException;
 import com.airbnb.reair.common.CliUtils;
+import com.airbnb.reair.common.HiveMetastoreClient;
 import com.airbnb.reair.common.HiveObjectSpec;
-import com.airbnb.reair.common.ThriftHiveMetastoreClient;
 import com.airbnb.reair.incremental.DirectoryCopier;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
@@ -160,7 +160,7 @@ public class HiveCopy {
 
     if ("copy-unpartitioned-table".equals(op)) {
       LOG.info("Copying an unpartitioned table");
-      ThriftHiveMetastoreClient ms = srcCluster.getMetastoreClient();
+      HiveMetastoreClient ms = srcCluster.getMetastoreClient();
       Table srcTable = ms.getTable(spec.getDbName(), spec.getTableName());
       CopyUnpartitionedTableTask job = new CopyUnpartitionedTableTask(conf,
           destinationObjectFactory, conflictHandler, srcCluster, destCluster, spec,
@@ -172,7 +172,7 @@ public class HiveCopy {
       }
     } else if ("copy-partitioned-table".equals(op)) {
       LOG.info("Copying a partitioned table");
-      ThriftHiveMetastoreClient ms = srcCluster.getMetastoreClient();
+      HiveMetastoreClient ms = srcCluster.getMetastoreClient();
       Table srcTable = ms.getTable(spec.getDbName(), spec.getTableName());
       CopyPartitionedTableTask job = new CopyPartitionedTableTask(conf, destinationObjectFactory,
           conflictHandler, srcCluster, destCluster, spec, ReplicationUtils.getLocation(srcTable));
@@ -183,7 +183,7 @@ public class HiveCopy {
       }
     } else if (op.equals("copy-partition")) {
       LOG.info("Copying a partition");
-      ThriftHiveMetastoreClient ms = srcCluster.getMetastoreClient();
+      HiveMetastoreClient ms = srcCluster.getMetastoreClient();
       Partition srcPartition =
           ms.getPartition(spec.getDbName(), spec.getTableName(), spec.getPartitionName());
       CopyPartitionTask job = new CopyPartitionTask(conf, destinationObjectFactory, conflictHandler,

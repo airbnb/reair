@@ -52,6 +52,9 @@ public class ConfigurationKeys {
   public static final String DEST_HDFS_ROOT = "airbnb.reair.clusters.dest.hdfs.root";
   // The root of the temporary directory for storing temporary files on the destination cluster
   public static final String DEST_HDFS_TMP = "airbnb.reair.clusters.dest.hdfs.tmp";
+  // Prefix to add to any databases on the destination cluster.  Mostly used for production testing.
+  public static final String DEST_CLUSTER_METASTORE_DB_PREFIX =
+      "airbnb.reair.clusters.dest.metastore.db.prefix";
 
   // Class to use for filtering out entries from the audit log
   public static final String OBJECT_FILTER_CLASS = "airbnb.reair.object.filter";

@@ -63,6 +63,12 @@
   </property>
 
   <property>
+    <name>airbnb.reair.clusters.dest.metastore.db.prefix</name>
+    <value></value>
+    <comment>Optional prefix to add to destination Hive database names.</comment>
+  </property>
+
+  <property>
     <name>airbnb.reair.clusters.batch.output.dir</name>
     <value>hdfs://airfs-test/user/test/test_output</value>
     <comment>
