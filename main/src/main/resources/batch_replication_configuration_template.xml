@@ -75,7 +75,7 @@
     <name>airbnb.reair.clusters.batch.metastore.blacklist</name>
     <value>testdb:test.*,tmp_.*:.*</value>
     <comment>
-      Comma seperated regex blacklist. dbname_regex:tablename_regex,...
+      Comma separated regex blacklist. dbname_regex:tablename_regex,...
     </comment>
   </property>
 
