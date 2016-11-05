@@ -63,7 +63,7 @@ public class ReplicationJobFactory {
    * @param conf configuration
    * @param srcCluster source cluster
    * @param destCluster destination cluster
-   * @param jobInfoStore persistant store for jobs
+   * @param jobInfoStore persistent store for jobs
    * @param destinationObjectFactory factory for creating objects for the destination cluster
    * @param onStateChangeHandler handler for when a job's state changes
    * @param objectConflictHandler handler for addressing conflicting tables/partitions on the
