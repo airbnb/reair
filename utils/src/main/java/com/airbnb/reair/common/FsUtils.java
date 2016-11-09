@@ -188,6 +188,19 @@ public class FsUtils {
   }
 
   /**
+   * Add "/" to path if path doesn't end with "/".
+   */
+  public static String getPathWithSlash(String path) {
+    if (path == null) {
+      return null;
+    }
+    if (!path.endsWith("/")) {
+      path = path + "/";
+    }
+    return path;
+  }
+
+  /**
    * Get the path relative to another path.
    *
    * @param root the reference path
@@ -197,7 +210,7 @@ public class FsUtils {
    */
   public static String getRelativePath(Path root, Path child) {
     // TODO: Use URI.relativize()
-    String prefix = root.toString() + "/";
+    String prefix = getPathWithSlash(root.toString());
     if (!child.toString().startsWith(prefix)) {
       throw new RuntimeException("Invalid root: " + root + " and child " + child);
     }
