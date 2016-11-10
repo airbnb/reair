@@ -50,6 +50,54 @@ import java.util.Optional;
 import java.util.TimeZone;
 import java.util.UUID;
 
+/**
+ * MetastoreReplicationJobs runs 3 jobs to replicate the Hive metadata and HDFS data.
+ *
+ * <p>1. runMetastoreCompareJob(tableListFileOnHdfs, step1Out).
+ *
+ * <p>1.1 job.setInputFormatClass(MetastoreScanInputFormat.class)
+ * - Scan source metastore for all tables in all databases (or given a whitelist). Each map input
+ * split will contain a list of "database:table"s.
+ *
+ * <p>1.2 job.setMapperClass(Stage1ProcessTableMapper.class)
+ * - For each table, generate a task (called TaskEstimate) for it.
+ * - For non-partitioned table, an equal check on HDFS file is performed to decide whether data of
+ * the table needs to be copied.
+ * - For each partitioned table, first check and create the table in destination cluster
+ * (COPY_PARTITIONED_TABLE), and then generate a list of tasks, one for each partition from union
+ * of src and destination.
+ *
+ * <p>1.3 job.setReducerClass(PartitionCompareReducer.class);
+ * - Pass through all other tasks, except the CHECK_PARTITION tasks, which are re-analyzed to be
+ * COPY_PARTITION, DROP_PARTITION, NO_OP, etc, using an equal check on the HDFS file.
+ *
+ * <p>2. runHdfsCopyJob(new Path(step1Out, "part*"), step2Out)  (note when running end-to-end,
+ * "part*" is not specified).
+ *
+ * <p>2.1 job.setInputFormatClass(TextInputFormat.class).
+ * - Input of this job is the output of stage 1. It contains the actions to take for the tables and
+ * partitions. In this stage, we only care about the COPY actions.
+ *
+ * <p>2.2 job.setMapperClass(Stage2DirectoryCopyMapper.class).
+ * - In the mapper, it will enumerate the directories and figure out files needs to be copied.  It
+ * also cleans up destination directory, which means even idential HDFS files will be recopied.
+ * Since each directory can have an uneven number of files, we shuffle again to distribute the
+ * work for copying files, which is done on the reducers.
+ *
+ * <p>2.3 job.setReducerClass(Stage2DirectoryCopyReducer.class).
+ * - The actual copy of the files are done here.  Although the BatchUtils.doCopyFileAction tries to
+ * avoid copying when the destination file exists with the same timestamp and size, in reality, the
+ * destination file is already deleted in the mapper. :(
+ *
+ * <p>3. runCommitChangeJob(new Path(step1Out, "part*"), step3Out) (note when running end-to-end,
+ * "part*" is not specified).
+ *
+ * <p>3.1 job.setInputFormatClass(TextInputFormat.class).
+ * 
+ * <p>3.2 job.setMapperClass(Stage3CommitChangeMapper.class).
+ * - Takes action like COPY_PARTITION, COPY_PARTITIONED_TABLE, COPY_UNPARTITIONED_TABLE,
+ * DROP_PARTITION, DROP_TABLE.
+ */
 public class MetastoreReplicationJob extends Configured implements Tool {
   private static final Log LOG = LogFactory.getLog(MetastoreReplicationJob.class);
 
@@ -297,10 +345,10 @@ public class MetastoreReplicationJob extends Configured implements Tool {
           LOG.info("Deleting " + step3Out);
           FsUtils.deleteDirectory(this.getConf(), step3Out);
           if (cl.hasOption("override-input")) {
-            step2Out = new Path(cl.getOptionValue("override-input"));
+            step1Out = new Path(cl.getOptionValue("override-input"));
           }
 
-          return this.runCommitChangeJob(new Path(step2Out, "part*"), step3Out);
+          return this.runCommitChangeJob(new Path(step1Out, "part*"), step3Out);
         default:
           LOG.error("Invalid step specified: " + step);
           return 1;
@@ -324,6 +372,7 @@ public class MetastoreReplicationJob extends Configured implements Tool {
         ConfigurationKeys.BATCH_JOB_METASTORE_PARALLELISM,
         ConfigurationKeys.BATCH_JOB_COPY_PARALLELISM,
         ConfigurationKeys.SYNC_MODIFIED_TIMES_FOR_FILE_COPY,
+        ConfigurationKeys.BATCH_JOB_VERIFY_COPY_CHECKSUM,
         MRJobConfig.MAP_SPECULATIVE,
         MRJobConfig.REDUCE_SPECULATIVE
         );

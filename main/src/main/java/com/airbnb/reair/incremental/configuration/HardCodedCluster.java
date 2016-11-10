@@ -17,6 +17,7 @@ public class HardCodedCluster implements Cluster {
   private String jobtrackerPort;
   private Path hdfsRoot;
   private Path tmpDir;
+  private ThreadLocal<ThriftHiveMetastoreClient> metastoreClient;
 
   /**
    * Constructor with specific values.
@@ -44,6 +45,7 @@ public class HardCodedCluster implements Cluster {
     this.jobtrackerPort = jobtrackerPort;
     this.hdfsRoot = hdfsRoot;
     this.tmpDir = tmpDir;
+    this.metastoreClient = new ThreadLocal<ThriftHiveMetastoreClient>();
   }
 
   public String getMetastoreHost() {
@@ -54,8 +56,16 @@ public class HardCodedCluster implements Cluster {
     return metastorePort;
   }
 
+  /**
+   * Get a cached ThreadLocal metastore client.
+   */
   public ThriftHiveMetastoreClient getMetastoreClient() throws HiveMetastoreException {
-    return new ThriftHiveMetastoreClient(getMetastoreHost(), getMetastorePort());
+    ThriftHiveMetastoreClient result = this.metastoreClient.get();
+    if (result == null) {
+      result = new ThriftHiveMetastoreClient(getMetastoreHost(), getMetastorePort());
+      this.metastoreClient.set(result);
+    }
+    return result;
   }
 
   public Path getFsRoot() {

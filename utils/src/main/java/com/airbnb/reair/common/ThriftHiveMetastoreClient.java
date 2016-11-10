@@ -1,5 +1,7 @@
 package com.airbnb.reair.common;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
@@ -19,6 +21,8 @@ import java.util.Map;
  * Concrete implementation of a HiveMetastoreClient using Thrift RPC's.
  */
 public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
+
+  private static final Log LOG = LogFactory.getLog(ThriftHiveMetastoreClient.class);
 
   private static int DEFAULT_SOCKET_TIMEOUT = 600;
 
@@ -52,6 +56,7 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
    */
   private void connect() throws HiveMetastoreException {
 
+    LOG.info("Connecting to ThriftHiveMetastore " + host + ":" + port);
     transport = new TSocket(host, port, 1000 * clientSocketTimeout);
 
     this.client = new ThriftHiveMetastore.Client(new TBinaryProtocol(transport));
@@ -59,6 +64,7 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
     try {
       transport.open();
     } catch (TTransportException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -67,7 +73,17 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
    * TODO.
    */
   public void close() {
-    transport.close();
+    if (transport != null) {
+      transport.close();
+      transport = null;
+      client = null;
+    }
+  }
+
+  private void connectIfNeeded() throws HiveMetastoreException {
+    if (transport == null) {
+      connect();
+    }
   }
 
   /**
@@ -80,8 +96,10 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
    */
   public synchronized Partition addPartition(Partition partition) throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       return client.add_partition(partition);
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -99,10 +117,12 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
       throws HiveMetastoreException {
 
     try {
+      connectIfNeeded();
       return client.get_table(dbName, tableName);
     } catch (NoSuchObjectException e) {
       return null;
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -121,6 +141,7 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
       throws HiveMetastoreException {
 
     try {
+      connectIfNeeded();
       return client.get_partition_by_name(dbName, tableName, partitionName);
     } catch (NoSuchObjectException e) {
       return null;
@@ -136,6 +157,7 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
         throw new HiveMetastoreException(e);
       }
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -152,8 +174,10 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
   public synchronized void alterPartition(String dbName, String tableName, Partition partition)
       throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       client.alter_partition(dbName, tableName, partition);
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -170,8 +194,10 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
   public synchronized void alterTable(String dbName, String tableName, Table table)
       throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       client.alter_table(dbName, tableName, table);
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -228,8 +254,10 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
    */
   public synchronized void createTable(Table table) throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       client.create_table(table);
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -246,8 +274,10 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
   public synchronized void dropTable(String dbName, String tableName, boolean deleteData)
       throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       client.drop_table(dbName, tableName, deleteData);
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -265,8 +295,10 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
   public synchronized void dropPartition(String dbName, String tableName, String partitionName,
       boolean deleteData) throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       client.drop_partition_by_name(dbName, tableName, partitionName, deleteData);
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -280,8 +312,10 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
   public synchronized Map<String, String> partitionNameToMap(String partitionName)
       throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       return client.partition_name_to_spec(partitionName);
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -289,8 +323,10 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
   @Override
   public synchronized void createDatabase(Database db) throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       client.create_database(db);
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -298,10 +334,12 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
   @Override
   public synchronized Database getDatabase(String dbName) throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       return client.get_database(dbName);
     } catch (NoSuchObjectException e) {
       return null;
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -315,8 +353,10 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
   public synchronized List<String> getPartitionNames(String dbName, String tableName)
       throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       return client.get_partition_names(dbName, tableName, (short) -1);
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -325,8 +365,10 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
   public synchronized List<String> getTables(String dbName, String tableName)
       throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       return client.get_tables(dbName, tableName);
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -339,9 +381,11 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
       String destinationTableName)
           throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       return client.exchange_partition(partitionSpecs, sourceDb, sourceTable, destDb,
           destinationTableName);
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -354,8 +398,10 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
       Partition partition)
       throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       client.rename_partition(db, table, partitionValues, partition);
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -367,8 +413,10 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
    */
   public List<String> getAllDatabases() throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       return client.get_all_databases();
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }
@@ -381,8 +429,10 @@ public class ThriftHiveMetastoreClient implements HiveMetastoreClient {
    */
   public List<String> getAllTables(String dbName) throws HiveMetastoreException {
     try {
+      connectIfNeeded();
       return client.get_all_tables(dbName);
     } catch (TException e) {
+      close();
       throw new HiveMetastoreException(e);
     }
   }

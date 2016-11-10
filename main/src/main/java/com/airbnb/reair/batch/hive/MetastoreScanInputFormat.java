@@ -76,7 +76,7 @@ public class MetastoreScanInputFormat extends FileInputFormat<Text, Text> {
       for (List<String> range : Lists.partition(databases, dbPerThread)) {
         // for each range, pick a live owner and ask it to compute bite-sized splits
         splitfutures.add(executor.submit(
-              new SplitCallable(range, srcClient)));
+              new SplitCallable(range, srcCluster)));
       }
 
       // wait until we have all the results back
@@ -118,17 +118,18 @@ public class MetastoreScanInputFormat extends FileInputFormat<Text, Text> {
    * and generate list of table names in those databases.
    */
   class SplitCallable implements Callable<List<String>> {
-    private final HiveMetastoreClient client;
+    private final Cluster cluster;
     private final List<String> candidates;
 
 
-    public SplitCallable(List<String> candidates, HiveMetastoreClient client) {
+    public SplitCallable(List<String> candidates, Cluster cluster) {
       this.candidates = candidates;
-      this.client = client;
+      this.cluster = cluster;
     }
 
     public List<String> call() throws Exception {
       ArrayList<String> tables = new ArrayList<>();
+      HiveMetastoreClient client = cluster.getMetastoreClient();
       for (final String db: candidates) {
         tables.addAll(Lists.transform(client.getAllTables(db), new Function<String, String>() {
           @Override
@@ -137,7 +138,6 @@ public class MetastoreScanInputFormat extends FileInputFormat<Text, Text> {
           }
         }));
       }
-      client.close();
 
       LOG.info("Thread " + Thread.currentThread().getId() + ":processed "
           + candidates.size() + " dbs. Produced " + tables.size() + " tables.");
