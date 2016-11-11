@@ -40,6 +40,7 @@ public class DirectoryCopier {
    *                                   of modified file time after a copy, so this check may need to
    *                                   be disabled.
    */
+
   public DirectoryCopier(Configuration conf, Path tmpDir, boolean checkFileModificationTimes) {
     this.conf = conf;
     this.tmpDir = tmpDir;
@@ -110,10 +111,13 @@ public class DirectoryCopier {
   public boolean equalDirs(Path srcDir, Path destDir) throws IOException {
     return FsUtils.equalDirs(conf, srcDir, destDir, Optional.empty(), checkFileModificationTimes);
   }
-  public boolean equalDirs(Path srcDir, Path destDir, Optional<PathFilter> filter) throws IOException {
+
+  public boolean equalDirs(Path srcDir, Path destDir, Optional<PathFilter> filter)
+          throws IOException {
     return FsUtils.equalDirs(conf, srcDir, destDir, filter, checkFileModificationTimes);
   }
-  public boolean equalDirsExcludeHiddenFile(Path srcDir, Path destDir) throws IOException {
+
+  public boolean equalDirsWithoutHiddenFile(Path srcDir, Path destDir) throws IOException {
     return equalDirs(srcDir, destDir, hiddenFileFilter);
   }
 }
