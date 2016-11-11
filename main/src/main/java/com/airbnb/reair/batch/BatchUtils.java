@@ -1,6 +1,7 @@
 package com.airbnb.reair.batch;
 
 import com.airbnb.reair.common.FsUtils;
+import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -95,16 +96,16 @@ public class BatchUtils {
 
         // If checksums exist and don't match, re-do the copy. If checksums do not exist, assume
         // that they match.
-        if (!FsUtils.checksumsMatch(conf, srcPath, tmpDstPath)
+        if (conf.getBoolean(ConfigurationKeys.BATCH_JOB_VERIFY_COPY_CHECKSUM, true)
+            && !FsUtils.checksumsMatch(conf, srcPath, tmpDstPath)
             .map(Boolean::booleanValue)
             .orElse(true)) {
-          LOG.warn(String.format("Not renaming %s to %s since checksums do not match between "
-                  + "%s and %s",
+          throw new IOException(String.format("Not renaming %s to %s since checksums do not match "
+                  + "between %s and %s",
               tmpDstPath,
               dstPath,
               srcPath,
               tmpDstPath));
-          continue;
         }
 
         dstFs.rename(tmpDstPath, dstPath);
