@@ -12,6 +12,9 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.apache.hadoop.io.compress.CompressionInputStream;
 import org.apache.hadoop.util.Progressable;
 
 import java.io.IOException;
@@ -60,6 +63,12 @@ public class BatchUtils {
         FileStatus srcStatus = srcFs.getFileStatus(srcPath);
 
         final FSDataInputStream inputStream = srcFs.open(srcPath);
+        CompressionCodec codec = (new CompressionCodecFactory(conf)).getCodec(srcPath);
+        CompressionInputStream compressionInputStream =null;
+        if(codec != null ){
+          LOG.debug("src is compressed by "+codec.getCompressorType().getName());
+          compressionInputStream = codec.createInputStream(inputStream);
+        }
         Path dstPath = new Path(dstDir, srcFileStatus.getFileName());
         // if dst already exists.
         if (dstFs.exists(dstPath)) {
@@ -87,8 +96,9 @@ public class BatchUtils {
         }
 
         FSDataOutputStream outputStream = dstFs.create(tmpDstPath, progressable);
-        IOUtils.copyBytes(inputStream, outputStream, conf);
-        inputStream.close();
+        IOUtils.copyBytes(compressionInputStream == null ? inputStream : compressionInputStream,
+            outputStream, conf);
+        IOUtils.closeStream(compressionInputStream == null ? inputStream : compressionInputStream);
         outputStream.close();
         if (forceUpdate && dstFs.exists(dstPath)) {
           dstFs.delete(dstPath, false);
