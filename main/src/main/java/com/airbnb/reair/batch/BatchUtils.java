@@ -28,15 +28,15 @@ public class BatchUtils {
   /**
    * Executes a file copy.
    *
-   * @param conf Hadoop configuration object
+   * @param conf          Hadoop configuration object
    * @param srcFileStatus Status of the source file
-   * @param srcFs Source FileSystem
-   * @param dstDir Destination directory
-   * @param dstFs Destination FileSystem
-   * @param tmpDirPath Temporary copy staging location.
-   * @param progressable A progressable object to progress during long file copies
-   * @param forceUpdate Whether to force a copy
-   * @param identifier Identifier to use in the temporary file
+   * @param srcFs         Source FileSystem
+   * @param dstDir        Destination directory
+   * @param dstFs         Destination FileSystem
+   * @param tmpDirPath    Temporary copy staging location.
+   * @param progressable  A progressable object to progress during long file copies
+   * @param forceUpdate   Whether to force a copy
+   * @param identifier    Identifier to use in the temporary file
    * @return An error string or null if successful
    */
   public static String doCopyFileAction(
@@ -64,9 +64,9 @@ public class BatchUtils {
 
         final FSDataInputStream inputStream = srcFs.open(srcPath);
         CompressionCodec codec = (new CompressionCodecFactory(conf)).getCodec(srcPath);
-        CompressionInputStream compressionInputStream =null;
-        if(codec != null ){
-          LOG.debug("src is compressed by "+codec.getCompressorType().getName());
+        CompressionInputStream compressionInputStream = null;
+        if (codec != null) {
+          LOG.debug("src is compressed by " + codec.getCompressorType().getName());
           compressionInputStream = codec.createInputStream(inputStream);
         }
         Path dstPath = new Path(dstDir, srcFileStatus.getFileName());
