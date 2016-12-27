@@ -11,6 +11,7 @@ public class RunInfo {
     SUCCESSFUL,
     NOT_COMPLETABLE,
     FAILED,
+    DEST_IS_NEWER,
   }
 
   private RunStatus runStatus;

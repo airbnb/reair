@@ -84,6 +84,9 @@ public class ConfigurationKeys {
   // Name of the class for creating the cluster object in batch replication. Mainly for testing.
   public static final String BATCH_JOB_CLUSTER_FACTORY_CLASS =
       "airbnb.reair.clusters.batch.cluster.factory.class";
+  // Whether to overwrite newer tables/partitions on the destination. Default is true.
+  public static final String BATCH_JOB_OVERWRITE_NEWER =
+      "airbnb.reair.batch.overwrite.newer";
   // The number of reducers to use for jobs where reducers perform metastore operations
   public static final String BATCH_JOB_METASTORE_PARALLELISM =
           "airbnb.reair.batch.metastore.parallelism";

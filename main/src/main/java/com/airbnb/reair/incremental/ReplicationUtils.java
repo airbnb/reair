@@ -497,4 +497,78 @@ public class ReplicationUtils {
 
     return partition;
   }
+
+
+  private static Long getLongValue(Map<String, String> parameters, String key) {
+    if (parameters == null) {
+      return null;
+    }
+    String value = parameters.get(key);
+    if (value == null) {
+      return null;
+    }
+    try {
+      return Long.valueOf(value);
+    } catch (NumberFormatException e) {
+      LOG.warn("NumberFormatException: value for key " + key + ": " + value
+          + " is not a valid Integer.");
+      return null;
+    }
+  }
+
+  private static Long getLastModifiedTime(Map<String, String> parameters) {
+    Long lastModifiedTime = getLongValue(parameters, HiveParameterKeys.TLMT);
+    Long transientLastDdlTime = getLongValue(parameters, HiveParameterKeys.TLDT);
+
+    if (lastModifiedTime == null) {
+      return transientLastDdlTime;
+    }
+    if (transientLastDdlTime == null) {
+      return lastModifiedTime;
+    }
+    return Long.max(lastModifiedTime, transientLastDdlTime);
+  }
+
+  /**
+   * Return the last modified time of a table.
+   */
+  public static Long getLastModifiedTime(Table table) {
+    if (table == null) {
+      return null;
+    }
+    Map<String, String> parameters = table.getParameters();
+    return getLastModifiedTime(parameters);
+  }
+
+  /**
+   * Return the last modified time of a partition.
+   */
+  public static Long getLastModifiedTime(Partition partition) {
+    if (partition == null) {
+      return null;
+    }
+    Map<String, String> parameters = partition.getParameters();
+    return getLastModifiedTime(parameters);
+  }
+
+  /**
+   * Return whether the src table is older than the dest table.
+   */
+  public static boolean isSrcOlder(Table src, Table dest) {
+    Long srcModifiedTime = ReplicationUtils.getLastModifiedTime(src);
+    Long destModifiedTime = ReplicationUtils.getLastModifiedTime(dest);
+    return (srcModifiedTime != null && destModifiedTime != null
+        && srcModifiedTime < destModifiedTime);
+  }
+
+  /**
+   * Return whether the src partition is older than the dest partition.
+   */
+  public static boolean isSrcOlder(Partition src, Partition dest) {
+    Long srcModifiedTime = ReplicationUtils.getLastModifiedTime(src);
+    Long destModifiedTime = ReplicationUtils.getLastModifiedTime(dest);
+    return (srcModifiedTime != null && destModifiedTime != null
+        && srcModifiedTime < destModifiedTime);
+  }
+
 }

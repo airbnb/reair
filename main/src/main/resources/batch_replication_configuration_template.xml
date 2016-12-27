@@ -98,6 +98,14 @@
   </property>
 
   <property>
+    <name>airbnb.reair.batch.overwrite.newer</name>
+    <value>true</value>
+    <comment>
+      Whether the batch job will overwrite newer tables/partitions on the destination. Default is true.
+    </comment>
+  </property>
+ 
+  <property>
     <name>mapreduce.map.speculative</name>
     <value>false</value>
     <comment>

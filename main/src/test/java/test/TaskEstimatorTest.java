@@ -7,9 +7,11 @@ import static org.junit.Assert.assertTrue;
 import com.airbnb.reair.common.DistCpException;
 import com.airbnb.reair.common.HiveMetastoreException;
 import com.airbnb.reair.common.HiveObjectSpec;
+import com.airbnb.reair.common.HiveParameterKeys;
 import com.airbnb.reair.incremental.DirectoryCopier;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
+import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
 import com.airbnb.reair.incremental.primitives.CopyPartitionTask;
 import com.airbnb.reair.incremental.primitives.CopyPartitionedTableTask;
 import com.airbnb.reair.incremental.primitives.CopyUnpartitionedTableTask;
@@ -23,6 +25,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -214,4 +217,105 @@ public class TaskEstimatorTest extends MockClusterTest {
     estimate = estimator.analyze(spec);
     assertTrue(estimate.getTaskType() == TaskEstimate.TaskType.DROP_PARTITION);
   }
+
+  @Test
+  public void testEstimatesForUnpartitionedTableOverwriteNewer()
+      throws IOException, HiveMetastoreException, DistCpException {
+
+    // Overriding the default configuration, and make overwrite_newer = false.
+    YarnConfiguration conf = new YarnConfiguration(MockClusterTest.conf);
+    conf.set(ConfigurationKeys.BATCH_JOB_OVERWRITE_NEWER, Boolean.FALSE.toString());
+
+    final DirectoryCopier directoryCopier =
+        new DirectoryCopier(conf, srcCluster.getTmpDir(), false);
+
+    // Create an unpartitioned table in the source
+    final HiveObjectSpec spec = new HiveObjectSpec(HIVE_DB, HIVE_TABLE);
+
+    final Table srcTable = ReplicationTestUtils.createUnpartitionedTable(conf, srcMetastore, spec,
+        TableType.MANAGED_TABLE, srcWarehouseRoot);
+
+    final long srcLmt = ReplicationUtils.getLastModifiedTime(srcTable);
+
+    // Create an unpartitioned table in the destination that is newer
+    final Table destTable = ReplicationTestUtils.createUnpartitionedTable(conf, destMetastore, spec,
+        TableType.MANAGED_TABLE, destWarehouseRoot);
+    destTable.putToParameters(HiveParameterKeys.TLDT, Long.toString(srcLmt + 1));
+    destMetastore.alterTable(HIVE_DB, HIVE_TABLE, destTable);
+
+    // Confirm that we won't overwrite newer tables
+    final TaskEstimator estimator =
+        new TaskEstimator(conf, destinationObjectFactory, srcCluster, destCluster, directoryCopier);
+    TaskEstimate estimate = estimator.analyze(spec);
+    assertTrue(estimate.getTaskType() == TaskEstimate.TaskType.NO_OP);
+
+    // Modify the dest table to be older
+    destTable.putToParameters(HiveParameterKeys.TLDT, Long.toString(srcLmt - 1));
+    destMetastore.alterTable(HIVE_DB, HIVE_TABLE, destTable);
+
+    // Confirm that we will still overwrite older tables
+    TaskEstimate estimate2 = estimator.analyze(spec);
+    assertTrue(estimate2.getTaskType() == TaskEstimate.TaskType.COPY_UNPARTITIONED_TABLE);
+    assertTrue(estimate2.isUpdateMetadata());
+    assertTrue(estimate2.getSrcPath().get().equals(new Path(srcTable.getSd().getLocation())));
+
+    // Drop the source and destination
+    srcMetastore.dropTable(HIVE_DB, HIVE_TABLE, true);
+    destMetastore.dropTable(HIVE_DB, HIVE_TABLE, true);
+  }
+
+  @Test
+  public void testEstimatesForPartitionOverwriteNewer()
+      throws IOException, HiveMetastoreException, DistCpException {
+
+    // Overriding the default configuration, and make overwrite_newer = false.
+    YarnConfiguration conf = new YarnConfiguration(MockClusterTest.conf);
+    conf.set(ConfigurationKeys.BATCH_JOB_OVERWRITE_NEWER, Boolean.FALSE.toString());
+
+    final DirectoryCopier directoryCopier =
+        new DirectoryCopier(conf, srcCluster.getTmpDir(), false);
+
+    // Create an unpartitioned table in the source
+    final HiveObjectSpec tableSpec = new HiveObjectSpec(HIVE_DB, HIVE_TABLE);
+    final Table srcTable =
+        ReplicationTestUtils.createPartitionedTable(conf, srcMetastore, tableSpec,
+            TableType.MANAGED_TABLE, srcWarehouseRoot);
+
+    // Create a partition in the source
+    final HiveObjectSpec spec = new HiveObjectSpec(HIVE_DB, HIVE_TABLE, HIVE_PARTITION);
+    final Partition srcPartition = ReplicationTestUtils.createPartition(conf, srcMetastore, spec);
+
+    final long srcLmt = ReplicationUtils.getLastModifiedTime(srcPartition);
+
+    // Create an partitioned table in the destination that is newer
+    final Table destTable =
+        ReplicationTestUtils.createPartitionedTable(conf, destMetastore, tableSpec,
+            TableType.MANAGED_TABLE, destWarehouseRoot);
+    final Partition destPartition = ReplicationTestUtils.createPartition(conf, destMetastore, spec);
+
+    destPartition.putToParameters(HiveParameterKeys.TLDT, Long.toString(srcLmt + 1));
+    destMetastore.alterPartition(HIVE_DB, HIVE_TABLE, destPartition);
+
+    // Confirm that we won't overwrite newer partitions
+    final TaskEstimator estimator =
+        new TaskEstimator(conf, destinationObjectFactory, srcCluster, destCluster, directoryCopier);
+    TaskEstimate estimate = estimator.analyze(spec);
+    assertTrue(estimate.getTaskType() == TaskEstimate.TaskType.NO_OP);
+
+    // Modify the dest partition to be older
+    destPartition.putToParameters(HiveParameterKeys.TLDT, Long.toString(srcLmt - 1));
+    destMetastore.alterPartition(HIVE_DB, HIVE_TABLE, destPartition);
+
+    // Confirm that we will still overwrite older partitions
+    TaskEstimate estimate2 = estimator.analyze(spec);
+    assertTrue(estimate2.getTaskType() == TaskEstimate.TaskType.COPY_PARTITION);
+    assertTrue(estimate2.isUpdateMetadata());
+    assertTrue(estimate2.getSrcPath().get().equals(new Path(srcPartition.getSd().getLocation())));
+
+    // Drop the source and destination
+    srcMetastore.dropTable(HIVE_DB, HIVE_TABLE, true);
+    destMetastore.dropTable(HIVE_DB, HIVE_TABLE, true);
+  }
+
 }
+

@@ -12,4 +12,7 @@ public class HiveParameterKeys {
   // Official Hive param keys
   // Last modification time
   public static final String TLDT = hive_metastoreConstants.DDL_TIME;
+
+  // Last modification time for some cases
+  public static final String TLMT = "last_modified_time";
 }

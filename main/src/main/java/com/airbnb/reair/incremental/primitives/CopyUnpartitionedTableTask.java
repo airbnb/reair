@@ -12,6 +12,7 @@ import com.airbnb.reair.incremental.RunInfo;
 import com.airbnb.reair.incremental.configuration.Cluster;
 import com.airbnb.reair.incremental.configuration.DestinationObjectFactory;
 import com.airbnb.reair.incremental.configuration.ObjectConflictHandler;
+import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
 import com.airbnb.reair.multiprocessing.Lock;
 import com.airbnb.reair.multiprocessing.LockSet;
 
@@ -102,6 +103,19 @@ public class CopyUnpartitionedTableTask implements ReplicationTask {
 
     if (existingTable != null) {
       LOG.debug("Table " + spec + " exists on destination");
+
+      if (!conf.getBoolean(ConfigurationKeys.BATCH_JOB_OVERWRITE_NEWER, true)) {
+        Table freshDestTable = existingTable;
+        if (ReplicationUtils.isSrcOlder(freshSrcTable, freshDestTable)) {
+          LOG.warn(String.format(
+              "Source %s (%s) is older than destination (%s), so not copying",
+              spec,
+              ReplicationUtils.getLastModifiedTime(freshSrcTable),
+              ReplicationUtils.getLastModifiedTime(freshDestTable)));
+          return new RunInfo(RunInfo.RunStatus.DEST_IS_NEWER, 0);
+        }
+      }
+
       objectConflictHandler.handleCopyConflict(srcCluster, destCluster, freshSrcTable,
           existingTable);
     }

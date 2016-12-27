@@ -8,6 +8,7 @@ import com.airbnb.reair.incremental.DirectoryCopier;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.configuration.Cluster;
 import com.airbnb.reair.incremental.configuration.DestinationObjectFactory;
+import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -95,6 +96,20 @@ public class TaskEstimator {
           Optional.empty());
     }
 
+    // If both src and dest exist, and the dest is newer, and we don't overwrite newer partitions,
+    // then it's a NO_OP.
+    if (!conf.getBoolean(ConfigurationKeys.BATCH_JOB_OVERWRITE_NEWER, true)) {
+      if (ReplicationUtils.isSrcOlder(tableOnSrc, tableOnDest)) {
+        LOG.warn(String.format(
+            "Source %s (%s) is older than destination (%s), so not copying",
+            spec,
+            ReplicationUtils.getLastModifiedTime(tableOnSrc),
+            ReplicationUtils.getLastModifiedTime(tableOnDest)));
+        return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(),
+            Optional.empty());
+      }
+    }
+
     boolean isPartitionedTable = HiveUtils.isPartitioned(tableOnSrc);
 
     // See if we need to update the data
@@ -154,6 +169,20 @@ public class TaskEstimator {
     if (partitionOnSrc == null) {
       return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(),
           Optional.empty());
+    }
+
+    // If both src and dest exist, and the dest is newer, and we don't overwrite newer partitions,
+    // then it's a NO_OP.
+    if (!conf.getBoolean(ConfigurationKeys.BATCH_JOB_OVERWRITE_NEWER, true)) {
+      if (ReplicationUtils.isSrcOlder(partitionOnSrc, partitionOnDest)) {
+        LOG.warn(String.format(
+            "Source %s (%s) is older than destination (%s), so not copying",
+            spec,
+            ReplicationUtils.getLastModifiedTime(partitionOnSrc),
+            ReplicationUtils.getLastModifiedTime(partitionOnDest)));
+        return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(),
+            Optional.empty());
+      }
     }
 
     Partition expectedDestPartition = destObjectFactory.createDestPartition(srcCluster, destCluster,

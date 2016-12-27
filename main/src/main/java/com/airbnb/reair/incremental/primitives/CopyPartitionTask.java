@@ -11,6 +11,7 @@ import com.airbnb.reair.incremental.RunInfo;
 import com.airbnb.reair.incremental.configuration.Cluster;
 import com.airbnb.reair.incremental.configuration.DestinationObjectFactory;
 import com.airbnb.reair.incremental.configuration.ObjectConflictHandler;
+import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
 import com.airbnb.reair.multiprocessing.Lock;
 import com.airbnb.reair.multiprocessing.LockSet;
 
@@ -106,6 +107,19 @@ public class CopyPartitionTask implements ReplicationTask {
     if (freshSrcPartition == null) {
       LOG.warn("Source partition " + spec + " does not exist, so not " + "copying");
       return new RunInfo(RunInfo.RunStatus.NOT_COMPLETABLE, 0);
+    }
+
+    if (!conf.getBoolean(ConfigurationKeys.BATCH_JOB_OVERWRITE_NEWER, true)) {
+      Partition freshDestPartition =
+          destMs.getPartition(spec.getDbName(), spec.getTableName(), spec.getPartitionName());
+      if (ReplicationUtils.isSrcOlder(freshSrcPartition, freshDestPartition)) {
+        LOG.warn(String.format(
+            "Source %s (%s) is older than destination (%s), so not copying",
+            spec,
+            ReplicationUtils.getLastModifiedTime(freshSrcPartition),
+            ReplicationUtils.getLastModifiedTime(freshDestPartition)));
+        return new RunInfo(RunInfo.RunStatus.DEST_IS_NEWER, 0);
+      }
     }
 
     // Before copying a partition, first make sure that table is up to date
