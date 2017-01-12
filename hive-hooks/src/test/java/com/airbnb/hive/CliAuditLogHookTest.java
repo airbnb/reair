@@ -105,6 +105,7 @@ public class CliAuditLogHookTest {
             "test_db",
             "test_output_table");
     outputTable.setCreateTime(0);
+    outputTable.setOwner("table.owner");
 
     List<org.apache.hadoop.hive.ql.metadata.Table> outputTables =
         new ArrayList<>();
@@ -167,8 +168,9 @@ public class CliAuditLogHookTest {
         "test_db.test_output_table",
         "TABLE",
         "{\"1\":{\"str\":\"test_"
-          + "output_table\"},\"2\":{\"str\":\"test_db\"},\"4\":"
-          + "{\"i32\":0},\"5\":{\"i32\":0},\"6\":{\"i3"
+          + "output_table\"},\"2\":{\"str\":\"test_db\"},"
+          + "\"3\":{\"str\":\"table.owner\"},"
+          + "\"4\":{\"i32\":0},\"5\":{\"i32\":0},\"6\":{\"i3"
           + "2\":0},\"7\":{\"rec\":{\"1\":{\"lst\":[\"rec\",0]}"
           + ",\"3\":{\"str\":\"org.apache.hadoop.mapred.Sequenc"
           + "eFileInputFormat\"},\"4\":{\"str\":\"org.apache.ha"

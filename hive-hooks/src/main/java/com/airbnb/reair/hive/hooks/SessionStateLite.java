@@ -2,6 +2,7 @@ package com.airbnb.reair.hive.hooks;
 
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.MapRedStats;
+import org.apache.hadoop.hive.ql.QueryPlan;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
 import java.util.HashMap;
@@ -44,13 +45,16 @@ class SessionStateLite {
   /**
    * Creates a lightweight representation of the session state.
    *
-   * @param sessionState The Hive session state
+   * @param plan The Hive query plan
    */
-  public SessionStateLite(SessionState sessionState) {
-    this.cmd = sessionState.getCmd();
-    this.commandType = sessionState.getCommandType();
-    this.queryId = sessionState.getQueryId();
+  public SessionStateLite(QueryPlan plan) {
+
+    SessionState sessionState = SessionState.get();
+
     this.conf = new HiveConf(sessionState.getConf());
+    this.cmd = plan.getQueryStr();
+    this.commandType = plan.getOperationName();
+    this.queryId = plan.getQueryId();
     this.mapRedStats = new HashMap<>(sessionState.getMapRedStats());
   }
 

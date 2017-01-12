@@ -13,19 +13,22 @@ import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.events.AlterPartitionEvent;
 import org.apache.hadoop.hive.metastore.events.AlterTableEvent;
 import org.apache.hadoop.hive.ql.MapRedStats;
+import org.apache.hadoop.hive.ql.QueryPlan;
+import org.apache.hadoop.hive.ql.hooks.HookContext;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
 import org.apache.hadoop.hive.ql.hooks.WriteEntity;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.parse.SemanticAnalyzer;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 
 public class AuditLogHookUtils {
 
@@ -167,7 +170,6 @@ public class AuditLogHookUtils {
     }
 
     SessionState sessionState = new SessionState(hiveConf);
-    sessionState.setCmd(command);
 
     // Map the HiveOperation to the ...ql.plan.HiveOperation when possible.
     // ALTERTABLE_EXCHANGEPARTITION may be the only one that can't be mapped.
@@ -187,11 +189,24 @@ public class AuditLogHookUtils {
       }
     }
 
-    sessionState.setCommandType(commandType);
     sessionState.setMapRedStats(mapRedStatsPerStage);
+    SessionState.setCurrentSessionState(sessionState);
 
     // Run the hook
-    cliAuditLogHook.run(sessionState, readEntities, writeEntities, null, null);
+    SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(hiveConf);
+    QueryPlan queryPlan = new QueryPlan(
+            command,
+            semanticAnalyzer,
+            null,
+            commandType != null ? commandType.getOperationName() : null
+    );
+
+    HookContext hookContext = new HookContext(queryPlan, null);
+    hookContext.setInputs(readEntities);
+    hookContext.setOutputs(writeEntities);
+    hookContext.setConf(hiveConf);
+
+    cliAuditLogHook.run(hookContext);
   }
 
   /**

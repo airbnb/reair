@@ -1,17 +1,14 @@
 package com.airbnb.reair.hive.hooks;
 
-import com.airbnb.reair.common.Command;
 import com.airbnb.reair.db.DbCredentials;
 import com.airbnb.reair.utils.RetryableTask;
 import com.airbnb.reair.utils.RetryingTaskRunner;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.ql.hooks.LineageInfo;
-import org.apache.hadoop.hive.ql.hooks.PostExecute;
+import org.apache.hadoop.hive.ql.hooks.ExecuteWithHookContext;
+import org.apache.hadoop.hive.ql.hooks.HookContext;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
 import org.apache.hadoop.hive.ql.hooks.WriteEntity;
-import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 
@@ -26,7 +23,7 @@ import java.util.Set;
  * generates entries in the output objects table, and the map reduce stats
  * tables.
  */
-public class CliAuditLogHook implements PostExecute {
+public class CliAuditLogHook implements ExecuteWithHookContext {
 
   public static Logger LOG = Logger.getLogger(CliAuditLogHook.class);
 
@@ -60,14 +57,27 @@ public class CliAuditLogHook implements PostExecute {
   }
 
   @Override
-  public void run(final SessionState sessionState,
+  public void run(HookContext hookContext) throws Exception {
+    Set<ReadEntity> inputs = hookContext.getInputs();
+    Set<WriteEntity> outputs = hookContext.getOutputs();
+    UserGroupInformation ugi = hookContext.getUgi();
+
+    run(hookContext, inputs, outputs, ugi);
+  }
+
+  /**
+   *
+   * @param hookContext
+   *     The hook context passed to each hooks.
+   * @throws Exception if there's an error
+   */
+  public void run(final HookContext hookContext,
                   final Set<ReadEntity> readEntities,
                   final Set<WriteEntity> writeEntities,
-                  final LineageInfo lineageInfo,
                   final UserGroupInformation userGroupInformation)
       throws Exception {
-    HiveConf conf = sessionState.getConf();
-    SessionStateLite sessionStateLite = new SessionStateLite(sessionState);
+    HiveConf conf = hookContext.getConf();
+    SessionStateLite sessionStateLite = new SessionStateLite(hookContext.getQueryPlan());
 
     final DbCredentials dbCreds = getDbCreds(conf);
 
