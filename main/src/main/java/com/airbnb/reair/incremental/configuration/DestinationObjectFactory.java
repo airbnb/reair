@@ -4,6 +4,8 @@ import com.airbnb.reair.common.FsUtils;
 import com.airbnb.reair.common.HiveParameterKeys;
 import com.airbnb.reair.incremental.ReplicationUtils;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -21,6 +23,8 @@ import java.util.Optional;
  * @version
  */
 public class DestinationObjectFactory implements Configurable {
+
+  private static final Log LOG = LogFactory.getLog(DestinationObjectFactory.class);
 
   private Optional<Configuration> conf;
 
@@ -59,10 +63,13 @@ public class DestinationObjectFactory implements Configurable {
     // If the source path is within the FS root of the source cluster,
     // it should have the same relative path on the destination
     Path destPath;
-    if (srcPath.toString().startsWith(srcCluster.getFsRoot().toString() + "/")) {
+    String srcFsRootWithSlash = FsUtils.getPathWithSlash(srcCluster.getFsRoot().toString());
+    if (srcPath.toString().startsWith(srcFsRootWithSlash)) {
       String relativePath = FsUtils.getRelativePath(srcCluster.getFsRoot(), srcPath);
       destPath = new Path(destCluster.getFsRoot(), relativePath);
     } else {
+      LOG.warn("srcPath " + srcPath.toString() + " doesn't start with " +
+          srcFsRootWithSlash);
       destPath = new Path(destCluster.getFsRoot(), srcPath.toUri().getPath());
     }
 
