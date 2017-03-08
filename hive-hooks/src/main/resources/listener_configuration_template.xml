@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<configuration>
+
+    <property>
+        <name>hive.metastore.event.listeners</name>
+        <value>com.airbnb.reair.hive.hooks.MetastoreAuditLogListener</value>
+    </property>
+
+    <property>
+        <name>airbnb.reair.metastore.audit_log.db.username</name>
+        <value>username</value>
+        <comment>
+            Username to use when connecting to the DB.
+        </comment>
+    </property>
+
+    <property>
+        <name>airbnb.reair.metastore.audit_log.db.password</name>
+        <value>password</value>
+        <comment>
+            Password to use when connecting to the DB.
+        </comment>
+    </property>
+
+    <property>
+        <name>airbnb.reair.metastore.audit_log.jdbc_url</name>
+        <value>jdbc:mysql://host:port/db</value>
+        <comment>
+            JDBC connection URL to the MySQL instance containing the audit log.
+            The URL should include the DB name as well.
+        </comment>
+    </property>
+
+    <property>
+        <name>airbnb.reair.audit_log.core.table_name</name>
+        <value>audit_log</value>
+        <comment>Name of the audit log table.</comment>
+    </property>
+
+    <property>
+        <name>airbnb.reair.audit_log.objects.table_name</name>
+        <value>audit_objects</value>
+        <comment>Name of the audit objects table.</comment>
+    </property>
+
+</configuration>

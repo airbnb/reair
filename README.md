@@ -68,6 +68,8 @@ sudo -u hive hadoop jar main/build/libs/airbnb-reair-main-1.0.0-all.jar com.airb
 
 ### Audit Log Hook Setup
 
+Incremental replication relies on recording changes in the source Hive warehouse to figure out what needs to be replicated. These changes can be recorded in two different ways. In the first method, the hook is added to the Hive CLI and runs after a query is successful. In the other method, the hook is added as a listener in the Hive remote metastore server. This method requires that you have the  metastore server deployed and used by Hive, but it will work when systems other than Hive (e.g. Spark) make calls to the metastore server to create tables. The steps to deploy either hook are similar:
+
 Build and deploy the JAR containing the audit log hook
 
 * Switch to the repository directory and build the JAR.
@@ -79,11 +81,13 @@ cd reair
 
 * Once built, the JAR for the audit log hook can be found under `hive-hooks/build/libs/airbnb-reair-hive-hooks-1.0.0-all.jar`.
 
-* Copy the JAR to the Hive auxiliary library path. The specifics of the path depending on your setup. Generally, the auxiliary library path can be configured using the configuration parameter `hive.aux.jars.path` or through environment variables as defined in shell scripts that launch Hive.
+* Copy the JAR to the Hive auxiliary library path. The specifics of the path depending on your setup. Generally, the auxiliary library path can be configured using the configuration parameter `hive.aux.jars.path`. If you're deploying the hook for the CLI, you only have to deploy the JAR on the hosts where the CLI will be run, and likewise, if you're deploying the hook for the metastore server, you only have to deploy the JAR on the server host.
 
 * Create and setup the tables on MySQL required for the audit log. You can create the tables by running the create table commands in all of the .sql files [here](hive-hooks/src/main/resources/). If you're planning to use the same DB to store the tables for incremental replication, also run the create table commands [here](main/src/main/resources/create_tables.sql).
 
-* Configure Hive (on the **source** warehouse) to use the audit log hook by adding the following sections to `hive-site.xml` from the [audit log configuration template](hive-hooks/src/main/resources/hook_configuration_template.xml) after replacing with appropriate values.
+* If you want to add the hook for the Hive CLI, change the configuration for the Hive CLI (in the **source** warehouse) to use the audit log hook by adding the following sections to `hive-site.xml` from the [audit log configuration template](hive-hooks/src/main/resources/hook_configuration_template.xml) after replacing with appropriate values.
+
+* If you want to add the hook for the metastore server, change the configuration for the Hive metastore server (in the **source** warehouse) to use the hook by adding the following sections to `hive-site.xml` from the [metastore audit log configuration template](hive-hooks/src/main/resources/listener_configuration_template.xml) after replacing with appropriate values.
 
 * Run a test query and verify that you see the appropriate rows in the `audit_log` and `audit_objects` tables.
 
