@@ -155,8 +155,8 @@ public class DistCpWrapper {
       if (useDistcpUpdate) {
         distcpArgs.add("-update");
       }
-      // Preserve user, group, permissions, and block size. Preserving block size is needed for
-      // DistCp to use built in checksums for verification.
+      // Preserve replication number, user, group, permissions, and block size. 
+      // Preserving block size is needed for DistCp to use built in checksums for verification.
       distcpArgs.add("-prugpb");
       distcpArgs.add(srcDir.toString());
       distcpArgs.add(distcpDestDir.toString());
