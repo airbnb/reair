@@ -188,17 +188,17 @@ public class CopyPartitionTask implements ReplicationTask {
         Path copiedPartitionDataLocation = new Path(optimisticCopyRoot.get(),
             StringUtils.stripStart(srcLocation.toUri().getPath(), "/"));
 
-        if (directoryCopier.equalDirs(srcLocation, copiedPartitionDataLocation)) {
+        if (directoryCopier.equalDirsWithoutHiddenFile(srcLocation, copiedPartitionDataLocation)) {
           // In this case, the data is there and we can move the
           // directory to the expected location.
           Path destinationPath = new Path(destPartition.getSd().getLocation());
 
           FsUtils.replaceDirectory(conf, copiedPartitionDataLocation, destinationPath);
         } else {
-          needToCopy = !directoryCopier.equalDirs(srcPath.get(), destPath.get());
+          needToCopy = !directoryCopier.equalDirsWithoutHiddenFile(srcPath.get(), destPath.get());
         }
       } else {
-        needToCopy = !directoryCopier.equalDirs(srcPath.get(), destPath.get());;
+        needToCopy = !directoryCopier.equalDirsWithoutHiddenFile(srcPath.get(), destPath.get());
       }
     }
 

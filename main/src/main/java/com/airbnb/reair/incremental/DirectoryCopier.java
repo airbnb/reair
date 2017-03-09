@@ -9,6 +9,7 @@ import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 
 import java.io.IOException;
 import java.util.List;
@@ -23,7 +24,12 @@ public class DirectoryCopier {
   private Configuration conf;
   private Path tmpDir;
   private boolean checkFileModificationTimes;
-
+  private static final Optional<PathFilter> hiddenFileFilter = Optional.of(new PathFilter() {
+    public boolean accept(Path path) {
+      String name = path.getName();
+      return !name.startsWith("_") && !name.startsWith(".");
+    }
+  });
   /**
    * Constructor for the directory copier.
    *
@@ -34,6 +40,7 @@ public class DirectoryCopier {
    *                                   of modified file time after a copy, so this check may need to
    *                                   be disabled.
    */
+
   public DirectoryCopier(Configuration conf, Path tmpDir, boolean checkFileModificationTimes) {
     this.conf = conf;
     this.tmpDir = tmpDir;
@@ -103,5 +110,14 @@ public class DirectoryCopier {
    */
   public boolean equalDirs(Path srcDir, Path destDir) throws IOException {
     return FsUtils.equalDirs(conf, srcDir, destDir, Optional.empty(), checkFileModificationTimes);
+  }
+
+  public boolean equalDirs(Path srcDir, Path destDir, Optional<PathFilter> filter)
+          throws IOException {
+    return FsUtils.equalDirs(conf, srcDir, destDir, filter, checkFileModificationTimes);
+  }
+
+  public boolean equalDirsWithoutHiddenFile(Path srcDir, Path destDir) throws IOException {
+    return equalDirs(srcDir, destDir, hiddenFileFilter);
   }
 }
