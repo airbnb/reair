@@ -652,11 +652,11 @@ public class MetastoreReplicationJob extends Configured implements Tool {
    * @throws IOException if there is an error copying the file.
    */
   private static void copyFile(Path srcFile, Path destFile) throws IOException {
-    String[] copyArgs = {"-cp", srcFile.toString(), destFile.toString()};
+    String[] copyArgs = {"-put", srcFile.toString(), destFile.toString()};
 
     FsShell shell = new FsShell();
     try {
-      LOG.debug("Using shell to copy with args " + Arrays.asList(copyArgs));
+      LOG.debug("Using shell to put with args " + Arrays.asList(copyArgs));
       ToolRunner.run(shell, copyArgs);
     } catch (Exception e) {
       throw new IOException(e);
