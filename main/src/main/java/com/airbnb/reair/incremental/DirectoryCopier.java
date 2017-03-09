@@ -9,6 +9,7 @@ import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 
 import java.io.IOException;
 import java.util.List;
@@ -23,7 +24,12 @@ public class DirectoryCopier {
   private Configuration conf;
   private Path tmpDir;
   private boolean checkFileModificationTimes;
-
+  private static final PathFilter hiddenFileFilter = new PathFilter() {
+    public boolean accept(Path path) {
+      String name = path.getName();
+      return !name.startsWith("_") && !name.startsWith(".");
+    }
+  };  
   /**
    * Constructor for the directory copier.
    *
@@ -102,6 +108,6 @@ public class DirectoryCopier {
    * @throws IOException if there's an error reading the filesystem
    */
   public boolean equalDirs(Path srcDir, Path destDir) throws IOException {
-    return FsUtils.equalDirs(conf, srcDir, destDir, Optional.empty(), checkFileModificationTimes);
+    return FsUtils.equalDirs(conf, srcDir, destDir,Optional.of(hiddenFileFilter), checkFileModificationTimes);
   }
 }
