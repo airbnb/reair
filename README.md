@@ -117,6 +117,7 @@ If you use the recommended [`log4j.properties`](main/src/main/resources/log4j.pr
 
 When the incremental replication process is launched for the first time, it will start replicating entries after the highest numbered ID in the audit log. Because the process periodically checkpoints progress to the DB, it can be killed and will resume from where it left off when restarted. To override this behavior, please see the additional options section.
 
+
 * Verify that entries are replicated properly by creating a test table on the source warehouse and checking to see if it appears on the destination warehouse.
 
 For production deployment, an external process should monitor and restart the replication process if it exits. The replication process will exit if the number of consecutive failures while making RPCs or DB queries exceed the configured number of retries.
