@@ -59,7 +59,7 @@ public class FsUtils {
     while (pathsToCheck.size() > 0) {
       Path pathToCheck = pathsToCheck.remove();
       if (filter.isPresent() && !filter.get().accept(pathToCheck)) {
-        LOG.warn("Skipping check of directory: " + pathToCheck);
+        LOG.warn(String.format("Skipping check of directory: %s", pathToCheck));
         continue;
       }
       FileStatus[] statuses = fs.listStatus(pathToCheck);
@@ -137,7 +137,7 @@ public class FsUtils {
     while (pathsToCheck.size() > 0) {
       Path pathToCheck = pathsToCheck.remove();
       if (filter.isPresent() && !filter.get().accept(pathToCheck)) {
-        LOG.warn("Skipping check of directory: " + pathToCheck);
+        LOG.warn(String.format("Skipping check of directory: %s", pathToCheck));
         continue;
       }
       FileStatus[] statuses = fs.listStatus(pathToCheck);
@@ -212,7 +212,7 @@ public class FsUtils {
     // TODO: Use URI.relativize()
     String prefix = getPathWithSlash(root.toString());
     if (!child.toString().startsWith(prefix)) {
-      throw new RuntimeException("Invalid root: " + root + " and child " + child);
+      throw new RuntimeException(String.format("Invalid root: %s and child %s", root, child));
     }
     return child.toString().substring(prefix.length());
   }
@@ -328,8 +328,8 @@ public class FsUtils {
     long destSize = totalSize(destFileSizes);
 
     // Size check is sort of redundant, but is a quick one to show.
-    LOG.debug("Size of " + src + " is " + srcSize);
-    LOG.debug("Size of " + dest + " is " + destSize);
+    LOG.debug(String.format("Size of %s is %d", src, srcSize));
+    LOG.debug(String.format("Size of %s is %d", dest, destSize));
 
     if (srcSize != destSize) {
       LOG.debug(String.format("Size of %s and %s do not match!", src, dest));
@@ -337,7 +337,7 @@ public class FsUtils {
     }
 
     if (srcFileSizes.size() != destFileSizes.size()) {
-      LOG.warn(String.format("Number of files in %s (%d) and %s (%d) " + "do not match!", src,
+      LOG.warn(String.format("Number of files in %s (%d) and %s (%d) do not match!", src,
           srcFileSizes.size(), dest, destFileSizes.size()));
       return false;
     }
@@ -348,7 +348,7 @@ public class FsUtils {
         return false;
       }
       if (!srcFileSizes.get(file).equals(destFileSizes.get(file))) {
-        LOG.warn(String.format("Size mismatch between %s (%d) in %s " + "and %s (%d) in %s", file,
+        LOG.warn(String.format("Size mismatch between %s (%d) in %s and %s (%d) in %s", file,
             srcFileSizes.get(file), src, file, destFileSizes.get(file), dest));
         return false;
       }
@@ -368,7 +368,7 @@ public class FsUtils {
       for (String file : srcFileModificationTimes.keySet()) {
         if (!srcFileModificationTimes.get(file).equals(destFileModificationTimes.get(file))) {
           LOG.warn(String.format(
-              "Modification time mismatch between " + "%s (%d) in %s and %s (%d) in %s", file,
+              "Modification time mismatch between %s (%d) in %s and %s (%d) in %s", file,
               srcFileModificationTimes.get(file), src, file, destFileModificationTimes.get(file),
               dest));
           return false;
@@ -423,23 +423,23 @@ public class FsUtils {
     FileSystem srcFs = FileSystem.get(src.toUri(), conf);
     FileSystem destFs = FileSystem.get(dest.toUri(), conf);
     if (!srcFs.getUri().equals(destFs.getUri())) {
-      throw new IOException("Source and destination filesystems " + "are different! src: "
-          + srcFs.getUri() + " dest: " + destFs.getUri());
+      throw new IOException(String.format("Source and destination filesystems are different! src: %s dest: %s",
+          srcFs.getUri(), destFs.getUri()));
     }
 
     Path destPathParent = dest.getParent();
     if (destFs.exists(destPathParent)) {
       if (!destFs.isDirectory(destPathParent)) {
-        throw new IOException("File exists instead of destination " + destPathParent);
+        throw new IOException(String.format("File exists instead of destination %s", destPathParent));
       } else {
-        LOG.debug("Parent directory exists: " + destPathParent);
+        LOG.debug(String.format("Parent directory exists: %s", destPathParent));
       }
     } else {
       destFs.mkdirs(destPathParent);
     }
     boolean successful = srcFs.rename(src, dest);
     if (!successful) {
-      throw new IOException("Error while moving from " + src + " to " + dest);
+      throw new IOException(String.format("Error while moving from %s to %s", src, dest);
     }
   }
 
@@ -470,19 +470,19 @@ public class FsUtils {
     Trash trash = new Trash(path.getFileSystem(conf), conf);
     try {
       if (!trash.isEnabled()) {
-        LOG.debug("Trash is not enabled for " + path + " so deleting instead");
+        LOG.debug(String.format("Trash is not enabled for %s so deleting instead", path));
         FileSystem fs = path.getFileSystem(conf);
         fs.delete(path, true);
       } else {
         boolean removed = trash.moveToTrash(path);
         if (removed) {
-          LOG.debug("Moved to trash: " + path);
+          LOG.debug(String.format("Moved to trash: %s", path));
         } else {
-          LOG.error("Item already in trash: " + path);
+          LOG.error(String.format("Item already in trash: %s", path));
         }
       }
     } catch (FileNotFoundException e) {
-      LOG.debug("Attempting to delete non-existent directory " + path);
+      LOG.debug(String.format("Attempting to delete non-existent directory %s", path));
       return;
     }
   }
@@ -511,10 +511,10 @@ public class FsUtils {
   public static void replaceDirectory(Configuration conf, Path src, Path dest) throws IOException {
     FileSystem fs = dest.getFileSystem(conf);
     if (fs.exists(dest)) {
-      LOG.debug("Removing " + dest + " since it exists");
+      LOG.debug(String.format("Removing %s since it exists", dest));
       deleteDirectory(conf, dest);
     }
-    LOG.debug("Renaming " + src + " to " + dest);
+    LOG.debug(String.format("Renaming %s to %s", src, dest));
     fs.rename(src, dest);
   }
 
