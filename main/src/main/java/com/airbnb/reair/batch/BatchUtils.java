@@ -59,7 +59,6 @@ public class BatchUtils {
         }
         FileStatus srcStatus = srcFs.getFileStatus(srcPath);
 
-        final FSDataInputStream inputStream = srcFs.open(srcPath);
         Path dstPath = new Path(dstDir, srcFileStatus.getFileName());
         // if dst already exists.
         if (dstFs.exists(dstPath)) {
@@ -87,18 +86,18 @@ public class BatchUtils {
         }
 
         // Keep the same replication factor and block size as the source file.
-        FSDataOutputStream outputStream = dstFs.create(
+        try (FSDataInputStream inputStream = srcFs.open(srcPath);
+          FSDataOutputStream outputStream = dstFs.create(
             tmpDstPath,
             srcStatus.getPermission(),
             true,
             conf.getInt("io.file.buffer.size", 4096),
             srcStatus.getReplication(),
             srcStatus.getBlockSize(),
-            progressable);
+            progressable)) {
+          IOUtils.copyBytes(inputStream, outputStream, conf);
+        }
 
-        IOUtils.copyBytes(inputStream, outputStream, conf);
-        inputStream.close();
-        outputStream.close();
         if (forceUpdate && dstFs.exists(dstPath)) {
           dstFs.delete(dstPath, false);
         }
