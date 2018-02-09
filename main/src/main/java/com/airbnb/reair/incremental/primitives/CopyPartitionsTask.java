@@ -11,6 +11,7 @@ import com.airbnb.reair.incremental.DirectoryCopier;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
 import com.airbnb.reair.incremental.configuration.Cluster;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.configuration.DestinationObjectFactory;
 import com.airbnb.reair.incremental.configuration.ObjectConflictHandler;
 import com.airbnb.reair.multiprocessing.Lock;
@@ -135,7 +136,8 @@ public class CopyPartitionsTask implements ReplicationTask {
 
   @Override
   public RunInfo runTask()
-      throws HiveMetastoreException, DistCpException, IOException, HiveMetastoreException {
+      throws HiveMetastoreException, DistCpException, IOException,
+      HiveMetastoreException, ConfigurationException {
     LOG.debug("Copying partitions from " + srcTableSpec);
     HiveMetastoreClient destMs = destCluster.getMetastoreClient();
     HiveMetastoreClient srcMs = srcCluster.getMetastoreClient();
@@ -290,8 +292,10 @@ public class CopyPartitionsTask implements ReplicationTask {
    * @return total number of bytes copied
    * @throws IOException if there is an error accessing the filesystem
    * @throws DistCpException if there is an error copying the data
+   * @throws ConfigurationException if the config is improper
    */
-  private long copyWithStructure(Path srcDir, Path destDir) throws IOException, DistCpException {
+  private long copyWithStructure(Path srcDir, Path destDir)
+      throws ConfigurationException, DistCpException, IOException {
 
     PathBuilder dirBuilder = new PathBuilder(destDir);
     // Preserve the directory structure within the dest directory

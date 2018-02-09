@@ -9,6 +9,7 @@ import com.airbnb.reair.incremental.DirectoryCopier;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
 import com.airbnb.reair.incremental.configuration.Cluster;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.configuration.DestinationObjectFactory;
 import com.airbnb.reair.incremental.configuration.ObjectConflictHandler;
 import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
@@ -95,7 +96,8 @@ public class CopyPartitionTask implements ReplicationTask {
   }
 
   @Override
-  public RunInfo runTask() throws HiveMetastoreException, DistCpException, IOException {
+  public RunInfo runTask()
+      throws ConfigurationException, HiveMetastoreException, DistCpException, IOException {
     LOG.debug("Copying " + spec);
 
     HiveMetastoreClient destMs = destCluster.getMetastoreClient();

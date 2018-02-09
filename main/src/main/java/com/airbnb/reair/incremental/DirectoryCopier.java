@@ -5,8 +5,11 @@ import com.airbnb.reair.common.DistCpWrapper;
 import com.airbnb.reair.common.DistCpWrapperOptions;
 import com.airbnb.reair.common.FsUtils;
 import com.airbnb.reair.common.PathBuilder;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
@@ -19,6 +22,7 @@ import java.util.Random;
  * Copies directories on Hadoop filesystems.
  */
 public class DirectoryCopier {
+  private static final Log LOG = LogFactory.getLog(DirectoryCopier.class);
 
   private Configuration conf;
   private Path tmpDir;
@@ -49,8 +53,10 @@ public class DirectoryCopier {
    *        really matter, but it can make it easier to manually inspect the tmp directory.
    * @return the number of bytes copied
    * @throws IOException if there was an error copying the directory
+   * @throws ConfigurationException if configuration options are improper
    */
-  public long copy(Path srcDir, Path destDir, List<String> copyAttributes) throws IOException {
+  public long copy(Path srcDir, Path destDir, List<String> copyAttributes)
+      throws ConfigurationException, IOException {
     Random random = new Random();
     long randomLong = Math.abs(random.nextLong());
 
@@ -70,7 +76,6 @@ public class DirectoryCopier {
 
     try {
       // Copy directory
-      DistCpWrapper distCpWrapper = new DistCpWrapper(conf);
       DistCpWrapperOptions options =
           new DistCpWrapperOptions(srcDir, destDir, distCpTmpDir, distCpLogDir)
               .setAtomic(true)
@@ -80,9 +85,38 @@ public class DirectoryCopier {
           ConfigurationKeys.COPY_JOB_TIMEOUT_SECONDS,
           -1);
       if (copyJobTimeoutSeconds > 0) {
-        options.setDistCpJobTimeout(copyJobTimeoutSeconds * 1000);
+        options.setDistCpJobTimeout(copyJobTimeoutSeconds * 1_000L);
+      }
+      boolean dynamicTimeoutEnabled = conf.getBoolean(
+          ConfigurationKeys.COPY_JOB_DYNAMIC_TIMEOUT_ENABLED,
+          false);
+      options.setDistcpDynamicJobTimeoutEnabled(dynamicTimeoutEnabled);
+      if (dynamicTimeoutEnabled && copyJobTimeoutSeconds > 0) {
+        throw new ConfigurationException(String.format(
+            "The config options {} and {} are both set, but only one can be used",
+            ConfigurationKeys.COPY_JOB_DYNAMIC_TIMEOUT_ENABLED,
+            ConfigurationKeys.COPY_JOB_TIMEOUT_SECONDS));
+      }
+      long dynamicTimeoutSecPerGb = conf.getLong(
+          ConfigurationKeys.COPY_JOB_DYNAMIC_TIMEOUT_SEC_PER_GB,
+          -1);
+      if (dynamicTimeoutSecPerGb > 0) {
+        options.setDistcpDynamicJobTimeoutMsPerGb(1_000L * dynamicTimeoutSecPerGb);
+      }
+      long dynamicTimeoutMin = conf.getLong(
+          ConfigurationKeys.COPY_JOB_DYNAMIC_TIMEOUT_MIN,
+          -1);
+      if (dynamicTimeoutMin > 0) {
+        options.setDistcpDynamicJobTimeoutMin(1_000L * dynamicTimeoutMin);
+      }
+      long dynamicTimeoutMax = conf.getLong(
+          ConfigurationKeys.COPY_JOB_DYNAMIC_TIMEOUT_MAX,
+          -1);
+      if (dynamicTimeoutMax > 0) {
+        options.setDistcpDynamicJobTimeoutMax(1_000L * dynamicTimeoutMax);
       }
 
+      DistCpWrapper distCpWrapper = new DistCpWrapper(conf);
       long bytesCopied = distCpWrapper.copy(options);
       return bytesCopied;
     } catch (DistCpException e) {

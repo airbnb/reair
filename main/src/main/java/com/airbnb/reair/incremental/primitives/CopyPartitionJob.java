@@ -4,6 +4,7 @@ import com.airbnb.reair.common.DistCpException;
 import com.airbnb.reair.common.HiveMetastoreException;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.multiprocessing.Job;
 import com.airbnb.reair.multiprocessing.LockSet;
 
@@ -53,6 +54,9 @@ public class CopyPartitionJob extends Job {
         LOG.error("Got an exception - will retry", e);
       } catch (IOException e) {
         LOG.error("Got an exception - will retry", e);
+      } catch (ConfigurationException e) {
+        LOG.error("Got unrecoverable exception", e);
+        return -1;
       }
       LOG.error("Because " + copyPartitionTask.getSpec() + " was not successful, "
           + "it will be retried after sleeping.");

@@ -11,6 +11,7 @@ import com.airbnb.reair.common.HiveParameterKeys;
 import com.airbnb.reair.incremental.DirectoryCopier;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
 import com.airbnb.reair.incremental.primitives.CopyPartitionTask;
 import com.airbnb.reair.incremental.primitives.CopyPartitionedTableTask;
@@ -48,7 +49,7 @@ public class TaskEstimatorTest extends MockClusterTest {
 
   @Test
   public void testEstimatesForUnpartitionedTable()
-      throws IOException, HiveMetastoreException, DistCpException {
+      throws ConfigurationException, IOException, HiveMetastoreException, DistCpException {
 
     final DirectoryCopier directoryCopier =
         new DirectoryCopier(conf, srcCluster.getTmpDir(), false);
@@ -156,7 +157,7 @@ public class TaskEstimatorTest extends MockClusterTest {
 
   @Test
   public void testEstimatesForPartition()
-      throws IOException, HiveMetastoreException, DistCpException {
+      throws ConfigurationException, IOException, HiveMetastoreException, DistCpException {
 
     final DirectoryCopier directoryCopier =
         new DirectoryCopier(conf, srcCluster.getTmpDir(), false);

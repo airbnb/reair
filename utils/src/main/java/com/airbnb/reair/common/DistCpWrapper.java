@@ -169,7 +169,9 @@ public class DistCpWrapper {
       DistCp distCp = new DistCp();
       distCp.setConf(conf);
 
-      int ret = runDistCp(distCp, distcpArgs, options.getDistcpJobTimeout(),
+      long distCpTimeout = options.getDistcpTimeout(srcSize);
+
+      int ret = runDistCp(distCp, distcpArgs, distCpTimeout,
           options.getDistCpPollInterval());
 
       if (Thread.currentThread().isInterrupted()) {

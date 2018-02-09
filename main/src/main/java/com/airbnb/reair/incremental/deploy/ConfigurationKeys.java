@@ -64,6 +64,14 @@ public class ConfigurationKeys {
   // When copying tables or partitions using an MR job, fail the job and retry if the job takes
   // longer than this many seconds.
   public static final String COPY_JOB_TIMEOUT_SECONDS = "airbnb.reair.copy.timeout.seconds";
+  // Whether to use a size based timeout for copy jobs
+  public static final String COPY_JOB_DYNAMIC_TIMEOUT_ENABLED =
+      "airbnb.reair.copy.timeout.dynamic.enabled";
+  public static final String COPY_JOB_DYNAMIC_TIMEOUT_SEC_PER_GB =
+      "airbnb.reair.copy.timeout.dynamic.sec_per_gb";
+  public static final String COPY_JOB_DYNAMIC_TIMEOUT_MIN =
+      "airbnb.reair.copy.timeout.dynamic.min";
+  public static final String COPY_JOB_DYNAMIC_TIMEOUT_MAX = "airbnb.reair.copy.timeout.dynamic.max";
   // If a replication job fails, the number of times to retry the job.
   public static final String JOB_RETRIES = "airbnb.reair.job.retries";
   // After a copy, whether to set / check that modified times for the copied files match between

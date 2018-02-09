@@ -9,6 +9,7 @@ import com.airbnb.reair.incremental.DirectoryCopier;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
 import com.airbnb.reair.incremental.configuration.Cluster;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.configuration.DestinationObjectFactory;
 import com.airbnb.reair.incremental.configuration.ObjectConflictHandler;
 import com.airbnb.reair.multiprocessing.Lock;
@@ -95,7 +96,8 @@ public class RenamePartitionTask implements ReplicationTask {
   }
 
   @Override
-  public RunInfo runTask() throws HiveMetastoreException, DistCpException, IOException {
+  public RunInfo runTask()
+      throws ConfigurationException, HiveMetastoreException, DistCpException, IOException {
     LOG.debug("Renaming " + renameFromSpec + " to " + renameToSpec);
 
     if (!renameFromPartitionTdlt.isPresent()) {
@@ -196,7 +198,7 @@ public class RenamePartitionTask implements ReplicationTask {
   }
 
   private RunInfo copyPartition(HiveObjectSpec spec, Optional<Path> partitionLocation)
-      throws HiveMetastoreException, DistCpException, IOException {
+      throws ConfigurationException, HiveMetastoreException, DistCpException, IOException {
     CopyPartitionTask task = new CopyPartitionTask(conf, destObjectFactory, objectConflictHandler,
         srcCluster, destCluster, spec, partitionLocation, Optional.empty(), directoryCopier, true);
     return task.runTask();

@@ -9,6 +9,7 @@ import com.airbnb.reair.common.HiveMetastoreException;
 import com.airbnb.reair.common.HiveObjectSpec;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.primitives.CopyPartitionTask;
 import com.airbnb.reair.incremental.primitives.RenamePartitionTask;
 import com.airbnb.reair.multiprocessing.ParallelJobExecutor;
@@ -42,7 +43,8 @@ public class RenamePartitionTaskTest extends MockClusterTest {
   }
 
   @Test
-  public void testRenamePartition() throws IOException, HiveMetastoreException, DistCpException {
+  public void testRenamePartition()
+      throws ConfigurationException, IOException, HiveMetastoreException, DistCpException {
     final String dbName = "test_db";
     final String tableName = "test_table";
     final String oldPartitionName = "ds=1/hr=1";
@@ -96,7 +98,7 @@ public class RenamePartitionTaskTest extends MockClusterTest {
 
   @Test
   public void testRenamePartitionByThrift()
-      throws IOException, HiveMetastoreException, DistCpException {
+      throws ConfigurationException, IOException, HiveMetastoreException, DistCpException {
     final String dbName = "test_db";
     final String tableName = "test_table";
     final String oldPartitionName = "ds=1/hr=1";

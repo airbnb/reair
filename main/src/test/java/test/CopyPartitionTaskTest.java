@@ -7,6 +7,7 @@ import com.airbnb.reair.common.HiveMetastoreException;
 import com.airbnb.reair.common.HiveObjectSpec;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.primitives.CopyPartitionTask;
 import com.airbnb.reair.utils.ReplicationTestUtils;
 
@@ -25,7 +26,8 @@ public class CopyPartitionTaskTest extends MockClusterTest {
   private static final Log LOG = LogFactory.getLog(CopyPartitionTaskTest.class);
 
   @Test
-  public void testCopyPartition() throws IOException, HiveMetastoreException, DistCpException {
+  public void testCopyPartition()
+      throws ConfigurationException, IOException, HiveMetastoreException, DistCpException {
     // Create a partitioned table in the source
     HiveObjectSpec tableSpec = new HiveObjectSpec("test_db", "test_table");
     Table srcTable = ReplicationTestUtils.createPartitionedTable(conf, srcMetastore, tableSpec,
@@ -58,7 +60,8 @@ public class CopyPartitionTaskTest extends MockClusterTest {
   }
 
   @Test
-  public void testCopyPartitionView() throws IOException, HiveMetastoreException, DistCpException {
+  public void testCopyPartitionView()
+      throws ConfigurationException, IOException, HiveMetastoreException, DistCpException {
     // Create a partitioned table in the source
     HiveObjectSpec tableSpec = new HiveObjectSpec("test_db", "test_table_view");
     ReplicationTestUtils.createPartitionedTable(conf, srcMetastore, tableSpec,

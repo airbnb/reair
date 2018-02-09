@@ -35,6 +35,16 @@ public class DistCpWrapperOptions {
   private long localCopySizeThreshold = (long) 256e6;
   // Poll for the progress of DistCp every N ms
   private long distCpPollInterval = 2500;
+  // Use a variable amount of time for distcp job timeout, depending on filesize
+  // subject to a minimum and maximum
+  // ceil(filesize_gb) * timeoutMsPerGb contrained to range (min, max)
+  private boolean distcpDynamicJobTimeoutEnabled = false;
+  // timeout in millis per GB, size will get rounded up
+  private long distcpDynamicJobTimeoutMsPerGb = 0;
+  // minimum job timeout for variable timeout (ms)
+  private long distcpDynamicJobTimeoutMin = distcpJobTimeout;
+  // maximum job timeout for variable timeout (ms)
+  private long distcpDynamicJobTimeoutMax = Long.MAX_VALUE;
 
   /**
    * Constructor for DistCp options.
@@ -81,6 +91,30 @@ public class DistCpWrapperOptions {
     return this;
   }
 
+  public DistCpWrapperOptions setDistcpDynamicJobTimeoutEnabled(
+      boolean distcpDynamicJobTimeoutEnabled) {
+    this.distcpDynamicJobTimeoutEnabled = distcpDynamicJobTimeoutEnabled;
+    return this;
+  }
+
+  public DistCpWrapperOptions setDistcpDynamicJobTimeoutMsPerGb(
+      long distcpDynamicJobTimeoutMsPerGb) {
+    this.distcpDynamicJobTimeoutMsPerGb = distcpDynamicJobTimeoutMsPerGb;
+    return this;
+  }
+
+  public DistCpWrapperOptions setDistcpDynamicJobTimeoutMin(
+      long distcpDynamicJobTimeoutMin) {
+    this.distcpDynamicJobTimeoutMin = distcpDynamicJobTimeoutMin;
+    return this;
+  }
+
+  public DistCpWrapperOptions setDistcpDynamicJobTimeoutMax(
+      long distcpDynamicJobTimeoutMax) {
+    this.distcpDynamicJobTimeoutMax = distcpDynamicJobTimeoutMax;
+    return this;
+  }
+
   public Path getSrcDir() {
     return srcDir;
   }
@@ -117,10 +151,6 @@ public class DistCpWrapperOptions {
     return filesPerMapper;
   }
 
-  public long getDistcpJobTimeout() {
-    return distcpJobTimeout;
-  }
-
   public long getLocalCopySizeThreshold() {
     return localCopySizeThreshold;
   }
@@ -131,5 +161,24 @@ public class DistCpWrapperOptions {
 
   public long getDistCpPollInterval() {
     return distCpPollInterval;
+  }
+
+  /**
+   * Returns the timeout that should be used, given a filesize.
+   * Helps determine whether to use dynamic timeout or not, and handles logic for that.
+   * @param filesizeBytes filesize of files to be copied in bytes
+   * @return The timeout to be used, in millis
+   */
+  public long getDistcpTimeout(long filesizeBytes) {
+    if (distcpDynamicJobTimeoutEnabled) {
+      long timeout = ((long) Math.ceil(filesizeBytes / 1e9)) * distcpDynamicJobTimeoutMsPerGb;
+      long minTimeout = distcpDynamicJobTimeoutMin;
+      long maxTimeout = distcpDynamicJobTimeoutMax;
+      timeout = Math.max(minTimeout, timeout);
+      timeout = Math.min(maxTimeout, timeout);
+      return timeout;
+    } else {
+      return distcpJobTimeout;
+    }
   }
 }

@@ -9,6 +9,7 @@ import com.airbnb.reair.common.HiveMetastoreException;
 import com.airbnb.reair.common.HiveObjectSpec;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.primitives.CopyUnpartitionedTableTask;
 import com.airbnb.reair.incremental.primitives.RenameTableTask;
 import com.airbnb.reair.multiprocessing.ParallelJobExecutor;
@@ -39,7 +40,8 @@ public class RenameTableTaskTest extends MockClusterTest {
   }
 
   @Test
-  public void testRenameTable() throws IOException, HiveMetastoreException, DistCpException {
+  public void testRenameTable()
+      throws ConfigurationException, IOException, HiveMetastoreException, DistCpException {
     final String dbName = "test_db";
     final String tableName = "test_table";
     final String newTableName = "new_test_table";
@@ -81,7 +83,7 @@ public class RenameTableTaskTest extends MockClusterTest {
 
   @Test
   public void testRenameTableReqiringCopy()
-      throws IOException, HiveMetastoreException, DistCpException {
+      throws ConfigurationException, IOException, HiveMetastoreException, DistCpException {
     final String dbName = "test_db";
     final String tableName = "test_table";
     final String newTableName = "new_test_table";

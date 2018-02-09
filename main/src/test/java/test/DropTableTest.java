@@ -8,6 +8,7 @@ import com.airbnb.reair.common.HiveMetastoreException;
 import com.airbnb.reair.common.HiveObjectSpec;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.primitives.CopyUnpartitionedTableTask;
 import com.airbnb.reair.incremental.primitives.DropTableTask;
 import com.airbnb.reair.utils.ReplicationTestUtils;
@@ -24,7 +25,8 @@ public class DropTableTest extends MockClusterTest {
   private static final Log LOG = LogFactory.getLog(DropTableTest.class);
 
   @Test
-  public void testDrop() throws DistCpException, HiveMetastoreException, IOException {
+  public void testDrop()
+      throws ConfigurationException, DistCpException, HiveMetastoreException, IOException {
     String dbName = "test_db";
     String tableName = "test_Table";
     // Create an unpartitioned table in the source

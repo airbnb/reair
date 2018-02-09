@@ -11,6 +11,7 @@ import com.airbnb.reair.common.HiveMetastoreException;
 import com.airbnb.reair.common.HiveObjectSpec;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.primitives.CopyUnpartitionedTableTask;
 import com.airbnb.reair.utils.ReplicationTestUtils;
 
@@ -28,7 +29,7 @@ public class CopyUnpartitionedTableTaskTest extends MockClusterTest {
 
   @Test
   public void testCopyUnpartitionedTable()
-      throws IOException, HiveMetastoreException, DistCpException {
+      throws ConfigurationException, IOException, HiveMetastoreException, DistCpException {
 
     // Create an unpartitioned table in the source
     HiveObjectSpec spec = new HiveObjectSpec("test_db", "test_table");
@@ -74,7 +75,7 @@ public class CopyUnpartitionedTableTaskTest extends MockClusterTest {
 
   @Test
   public void testCopyUnpartitionedTableView()
-      throws IOException, HiveMetastoreException, DistCpException {
+      throws ConfigurationException, IOException, HiveMetastoreException, DistCpException {
     HiveObjectSpec spec = new HiveObjectSpec("test_db", "test_table_view");
     Table srcTable = ReplicationTestUtils.createUnpartitionedTable(conf, srcMetastore, spec,
         TableType.VIRTUAL_VIEW, srcWarehouseRoot);

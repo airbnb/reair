@@ -8,6 +8,7 @@ import com.airbnb.reair.common.HiveMetastoreException;
 import com.airbnb.reair.common.HiveObjectSpec;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.primitives.CopyPartitionTask;
 import com.airbnb.reair.incremental.primitives.DropPartitionTask;
 import com.airbnb.reair.utils.ReplicationTestUtils;
@@ -22,7 +23,8 @@ import java.util.Optional;
 
 public class DropPartitionTest extends MockClusterTest {
   @Test
-  public void testDrop() throws DistCpException, HiveMetastoreException, IOException {
+  public void testDrop()
+      throws ConfigurationException, DistCpException, HiveMetastoreException, IOException {
     String dbName = "test_db";
     String tableName = "test_Table";
     // Create a partitioned table in the source

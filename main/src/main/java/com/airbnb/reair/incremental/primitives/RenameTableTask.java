@@ -8,6 +8,7 @@ import com.airbnb.reair.incremental.DirectoryCopier;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.RunInfo;
 import com.airbnb.reair.incremental.configuration.Cluster;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.configuration.DestinationObjectFactory;
 import com.airbnb.reair.incremental.configuration.ObjectConflictHandler;
 import com.airbnb.reair.multiprocessing.Lock;
@@ -90,7 +91,8 @@ public class RenameTableTask implements ReplicationTask {
   }
 
   @Override
-  public RunInfo runTask() throws DistCpException, HiveMetastoreException, IOException {
+  public RunInfo runTask()
+      throws ConfigurationException, DistCpException, HiveMetastoreException, IOException {
     LOG.debug("Renaming " + renameFromSpec + " to " + renameToSpec);
 
     HiveMetastoreClient destMs = destCluster.getMetastoreClient();

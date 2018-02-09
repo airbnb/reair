@@ -161,7 +161,7 @@ public class Stage3CommitChangeMapper extends Mapper<LongWritable, Text, Text, T
         default:
           break;
       }
-    } catch (HiveMetastoreException | DistCpException e) {
+    } catch (HiveMetastoreException | DistCpException | ConfigurationException e) {
       LOG.error(String.format("Got exception while processing %s", value.toString()), e);
       context.write(value, new Text(RunInfo.RunStatus.FAILED.toString()));
     }

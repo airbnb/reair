@@ -2,6 +2,7 @@ package com.airbnb.reair.incremental;
 
 import com.airbnb.reair.common.DistCpException;
 import com.airbnb.reair.common.HiveMetastoreException;
+import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.db.PersistedJobInfo;
 import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
 import com.airbnb.reair.incremental.primitives.ReplicationTask;
@@ -78,7 +79,7 @@ public class ReplicationJob extends Job {
         }
       } catch (HiveMetastoreException | IOException | DistCpException e) {
         LOG.error("Got an exception!", e);
-      } catch (StateUpdateException e) {
+      } catch (StateUpdateException | ConfigurationException e) {
         // Indicates an error with the system - fail the job.
         LOG.error("Got an exception!", e);
         return -1;
