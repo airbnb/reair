@@ -259,43 +259,23 @@ public class PersistedJobInfoStore {
       Optional<HiveObjectSpec> renameToObject,
       Optional<Path> renameToPath,
       Map<String, String> extras) throws IOException, SQLException {
-    // Round to the nearest second to match MySQL timestamp resolution
-    long currentTime = System.currentTimeMillis() / 1000 * 1000;
-
-    String query = "INSERT INTO " + dbTableName + " SET " + "create_time = ?, " + "operation = ?, "
-        + "status = ?, " + "src_path = ?, " + "src_cluster = ?, " + "src_db = ?, "
-        + "src_table = ?, " + "src_partitions = ?, " + "src_tldt = ?, " + "rename_to_db = ?, "
-        + "rename_to_table = ?, " + "rename_to_partition = ?, " + "rename_to_path = ?, "
-        + "extras = ? ";
-
-    Connection connection = dbConnectionFactory.getConnection();
-
-    PreparedStatement ps = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+    PreparedStatement ps = null;
     try {
-      int queryParamIndex = 1;
-      ps.setTimestamp(queryParamIndex++, new Timestamp(currentTime));
-      ps.setString(queryParamIndex++, operation.toString());
-      ps.setString(queryParamIndex++, status.toString());
-      ps.setString(queryParamIndex++, srcPath.map(Path::toString).orElse(null));
-      ps.setString(queryParamIndex++, srcClusterName);
-      ps.setString(queryParamIndex++, srcTableSpec.getDbName());
-      ps.setString(queryParamIndex++, srcTableSpec.getTableName());
-      ps.setString(queryParamIndex++, ReplicationUtils.convertToJson(srcPartitionNames));
-      ps.setString(queryParamIndex++, srcTldt.orElse(null));
-      if (!renameToObject.isPresent()) {
-        ps.setString(queryParamIndex++, null);
-        ps.setString(queryParamIndex++, null);
-        ps.setString(queryParamIndex++, null);
-        ps.setString(queryParamIndex++, null);
-      } else {
-        ps.setString(queryParamIndex++, renameToObject.map(HiveObjectSpec::getDbName).orElse(null));
-        ps.setString(queryParamIndex++,
-            renameToObject.map(HiveObjectSpec::getTableName).orElse(null));
-        ps.setString(queryParamIndex++,
-            renameToObject.map(HiveObjectSpec::getPartitionName).orElse(null));
-        ps.setString(queryParamIndex++, renameToPath.map(Path::toString).orElse(null));
-      }
-      ps.setString(queryParamIndex++, ReplicationUtils.convertToJson(extras));
+      ps = getCreatePreparedStatement();
+      long timestampMillisRounded = System.currentTimeMillis() / 1000 * 1000;
+      ps = createPopulatePreparedStatement(
+          ps,
+          timestampMillisRounded,
+          operation,
+          status,
+          srcPath,
+          srcClusterName,
+          srcTableSpec,
+          srcPartitionNames,
+          srcTldt,
+          renameToObject,
+          renameToPath,
+          extras);
 
       ps.execute();
       ResultSet rs = ps.getGeneratedKeys();
@@ -305,15 +285,71 @@ public class PersistedJobInfoStore {
         throw new RuntimeException("Unexpected behavior!");
       }
       long id = rs.getLong(1);
-      return new PersistedJobInfo(id, currentTime, operation, status, srcPath, srcClusterName,
+      return new PersistedJobInfo(id, timestampMillisRounded, operation, status, srcPath, srcClusterName,
           srcTableSpec.getDbName(), srcTableSpec.getTableName(), srcPartitionNames, srcTldt,
           renameToObject.map(HiveObjectSpec::getDbName),
           renameToObject.map(HiveObjectSpec::getTableName),
           renameToObject.map(HiveObjectSpec::getPartitionName), renameToPath, extras);
     } finally {
-      ps.close();
-      ps = null;
+      if (ps == null) {
+        ps.close();
+      }
     }
+  }
+
+  public PreparedStatement createPopulatePreparedStatement(
+      PreparedStatement ps,
+      long timestampMillisRounded,
+      ReplicationOperation operation,
+      ReplicationStatus status,
+      Optional<Path> srcPath,
+      String srcClusterName,
+      HiveObjectSpec srcTableSpec,
+      List<String> srcPartitionNames,
+      Optional<String> srcTldt,
+      Optional<HiveObjectSpec> renameToObject,
+      Optional<Path> renameToPath,
+      Map<String, String> extras) throws IOException, SQLException {
+    // Round to the nearest second to match MySQL timestamp resolution
+    long currentTime = timestampMillisRounded;
+
+    int queryParamIndex = 1;
+    ps.setTimestamp(queryParamIndex++, new Timestamp(currentTime));
+    ps.setString(queryParamIndex++, operation.toString());
+    ps.setString(queryParamIndex++, status.toString());
+    ps.setString(queryParamIndex++, srcPath.map(Path::toString).orElse(null));
+    ps.setString(queryParamIndex++, srcClusterName);
+    ps.setString(queryParamIndex++, srcTableSpec.getDbName());
+    ps.setString(queryParamIndex++, srcTableSpec.getTableName());
+    ps.setString(queryParamIndex++, ReplicationUtils.convertToJson(srcPartitionNames));
+    ps.setString(queryParamIndex++, srcTldt.orElse(null));
+    if (!renameToObject.isPresent()) {
+      ps.setString(queryParamIndex++, null);
+      ps.setString(queryParamIndex++, null);
+      ps.setString(queryParamIndex++, null);
+      ps.setString(queryParamIndex++, null);
+    } else {
+      ps.setString(queryParamIndex++, renameToObject.map(HiveObjectSpec::getDbName).orElse(null));
+      ps.setString(queryParamIndex++,
+          renameToObject.map(HiveObjectSpec::getTableName).orElse(null));
+      ps.setString(queryParamIndex++,
+          renameToObject.map(HiveObjectSpec::getPartitionName).orElse(null));
+      ps.setString(queryParamIndex++, renameToPath.map(Path::toString).orElse(null));
+    }
+    ps.setString(queryParamIndex++, ReplicationUtils.convertToJson(extras));
+    return ps;
+  }
+
+  private PreparedStatement getCreatePreparedStatement() throws SQLException {
+    String query = "INSERT INTO " + dbTableName + " SET " + "create_time = ?, " + "operation = ?, "
+        + "status = ?, " + "src_path = ?, " + "src_cluster = ?, " + "src_db = ?, "
+        + "src_table = ?, " + "src_partitions = ?, " + "src_tldt = ?, " + "rename_to_db = ?, "
+        + "rename_to_table = ?, " + "rename_to_partition = ?, " + "rename_to_path = ?, "
+        + "extras = ? ";
+    // TODO: check if this needs to be synchronized
+    Connection connection = dbConnectionFactory.getConnection();
+    PreparedStatement ps = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+    return ps;
   }
 
   private synchronized void persistHelper(PersistedJobInfo job) throws SQLException, IOException {
