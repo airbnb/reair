@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,6 +40,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 /**
  * Creates replication jobs and persists initial information into the DB.
@@ -371,6 +374,16 @@ public class ReplicationJobFactory {
       long auditLogEntryCreateTime,
       Table renameFromTable,
       Table renameToTable) throws StateUpdateException {
+
+    return null;
+  }
+
+  public Function<PersistedJobInfo, ReplicationJob> deferredCreateJobForRenameTable(
+    PreparedStatement preparedStatement,
+    long auditLogId,
+    long auditLogEntryCreateTime,
+    Table renameFromTable,
+    Table renameToTable) throws StateUpdateException {
     ReplicationOperation replicationOperation = ReplicationOperation.RENAME_TABLE;
 
     Map<String, String> extras = new HashMap<>();
@@ -387,6 +400,7 @@ public class ReplicationJobFactory {
         ReplicationStatus.PENDING, renameFromPath, srcCluster.getName(), renameFromTableSpec,
         new ArrayList<>(), ReplicationUtils.getTldt(renameFromTable),
         Optional.of(renameToTableSpec), renameToPath, extras);
+    PersistedJobInfo persistedJobInfo1 = jobInfoStore.populatePreparedStatement();
 
     return new ReplicationJob(
         conf,

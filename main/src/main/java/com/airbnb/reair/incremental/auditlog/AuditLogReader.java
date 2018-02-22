@@ -11,6 +11,7 @@ import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
 import com.airbnb.reair.utils.RetryableTask;
 import com.airbnb.reair.utils.RetryingTaskRunner;
 
+import org.apache.commons.collections.list.SynchronizedList;
 import org.apache.commons.lang.math.LongRange;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -23,6 +24,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -99,6 +102,34 @@ public class AuditLogReader {
     }
 
     return ret.get();
+  }
+
+  public synchronized List<AuditLogEntry> resilientNext(int maxResults) throws AuditLogEntryException, SQLException {
+    final Container<List<AuditLogEntry>> ret = new Container<>();
+    List<AuditLogEntry> results = Collections.synchronizedList(new ArrayList<>());
+
+    try {
+      retryingTaskRunner.runWithRetries(new RetryableTask() {
+        @Override
+        public void run() throws Exception {
+          while (results.size() < maxResults) {
+            Optional<AuditLogEntry> entry = next();
+            if (entry.isPresent()) {
+              results.add(entry.get());
+            } else {
+              return;
+            }
+          }
+        }
+      });
+    } catch (SQLException | AuditLogEntryException e) {
+      // These should be the only exceptions thrown
+      throw e;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    return results;
   }
 
   /**

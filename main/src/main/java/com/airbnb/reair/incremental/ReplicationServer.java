@@ -382,6 +382,7 @@ public class ReplicationServer implements TReplicationService.Iface {
         continue;
       }
 
+      //TODO: make sure to consider this in batch mode
       // Stop if we've had enough successful jobs - for testing purposes
       // only
       long completedJobs = counters.getCounter(ReplicationCounters.Type.SUCCESSFUL_TASKS)
@@ -395,6 +396,7 @@ public class ReplicationServer implements TReplicationService.Iface {
       }
 
       // Wait if there are too many jobs
+      // TODO: respect this
       if (jobExecutor.getNotDoneJobCount() > maxJobsInMemory) {
         LOG.debug(String.format(
             "There are too many jobs in memory. " + "Waiting until more complete. (limit: %d)",
@@ -404,6 +406,7 @@ public class ReplicationServer implements TReplicationService.Iface {
       }
 
       // Get an entry from the audit log
+      // TODO: make this multi next
       LOG.debug("Fetching the next entry from the audit log");
       Optional<AuditLogEntry> auditLogEntry = auditLogReader.resilientNext();
 
@@ -416,10 +419,12 @@ public class ReplicationServer implements TReplicationService.Iface {
         continue;
       }
 
+      //TODO: loop over entries
       AuditLogEntry entry = auditLogEntry.get();
 
       LOG.debug("Got audit log entry: " + entry);
 
+      //TODO: do this multiple times in 2 steps
       // Convert the audit log entry into a replication job, which has
       // elements persisted to the DB
       List<ReplicationJob> replicationJobs =
@@ -428,6 +433,7 @@ public class ReplicationServer implements TReplicationService.Iface {
       LOG.debug(
           String.format("Audit log entry id: %s converted to %s", entry.getId(), replicationJobs));
 
+      //TODO: add to registry after committing
       // Add these jobs to the registry
       for (ReplicationJob job : replicationJobs) {
         jobRegistry.registerJob(job);
@@ -440,12 +446,14 @@ public class ReplicationServer implements TReplicationService.Iface {
         updateTimeForLastPersistedId = System.currentTimeMillis();
       }
 
+      //TODO: after adding to registry do this
       for (ReplicationJob replicationJob : replicationJobs) {
         LOG.debug("Scheduling: " + replicationJob);
         prettyLogStart(replicationJob);
         long tasksSubmittedForExecution =
             counters.getCounter(ReplicationCounters.Type.EXECUTION_SUBMITTED_TASKS);
 
+        // TODO: respect this especially above and move it up
         if (tasksSubmittedForExecution >= jobsToComplete) {
           LOG.warn(String.format("Not submitting %s for execution "
               + " due to the limit for the number of " + "jobs to execute", replicationJob));

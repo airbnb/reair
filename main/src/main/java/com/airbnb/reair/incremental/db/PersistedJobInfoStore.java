@@ -263,7 +263,7 @@ public class PersistedJobInfoStore {
     try {
       ps = getCreatePreparedStatement();
       long timestampMillisRounded = System.currentTimeMillis() / 1000 * 1000;
-      ps = createPopulatePreparedStatement(
+      populatePreparedStatement(
           ps,
           timestampMillisRounded,
           operation,
@@ -277,7 +277,7 @@ public class PersistedJobInfoStore {
           renameToPath,
           extras);
 
-      ps.execute();
+      ps.executeBatch();
       ResultSet rs = ps.getGeneratedKeys();
       boolean ret = rs.next();
       if (!ret) {
@@ -297,7 +297,41 @@ public class PersistedJobInfoStore {
     }
   }
 
-  public PreparedStatement createPopulatePreparedStatement(
+  public synchronized java.util.function.Function<Long, PersistedJobInfo> addBatch(
+      PreparedStatement ps,
+      ReplicationOperation operation,
+      ReplicationStatus status,
+      Optional<Path> srcPath,
+      String srcClusterName,
+      HiveObjectSpec srcTableSpec,
+      List<String> srcPartitionNames,
+      Optional<String> srcTldt,
+      Optional<HiveObjectSpec> renameToObject,
+      Optional<Path> renameToPath,
+      Map<String, String> extras) throws IOException, SQLException {
+    long timestampMillisRounded = System.currentTimeMillis() / 1000 * 1000;
+    populatePreparedStatement(
+        ps,
+        timestampMillisRounded,
+        operation,
+        status,
+        srcPath,
+        srcClusterName,
+        srcTableSpec,
+        srcPartitionNames,
+        srcTldt,
+        renameToObject,
+        renameToPath,
+        extras);
+    return (Long id) ->
+      new PersistedJobInfo(id, timestampMillisRounded, operation, status, srcPath, srcClusterName,
+          srcTableSpec.getDbName(), srcTableSpec.getTableName(), srcPartitionNames, srcTldt,
+          renameToObject.map(HiveObjectSpec::getDbName),
+          renameToObject.map(HiveObjectSpec::getTableName),
+          renameToObject.map(HiveObjectSpec::getPartitionName), renameToPath, extras);
+  }
+
+  public void populatePreparedStatement(
       PreparedStatement ps,
       long timestampMillisRounded,
       ReplicationOperation operation,
@@ -337,7 +371,7 @@ public class PersistedJobInfoStore {
       ps.setString(queryParamIndex++, renameToPath.map(Path::toString).orElse(null));
     }
     ps.setString(queryParamIndex++, ReplicationUtils.convertToJson(extras));
-    return ps;
+    ps.addBatch();
   }
 
   private PreparedStatement getCreatePreparedStatement() throws SQLException {
