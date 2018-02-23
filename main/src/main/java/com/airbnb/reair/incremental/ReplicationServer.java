@@ -51,6 +51,7 @@ public class ReplicationServer implements TReplicationService.Iface {
   private static final Log LOG = LogFactory.getLog(ReplicationServer.class);
 
   private static final long POLL_WAIT_TIME_MS = 10 * 1000;
+  private static final int BATCH_SIZE = 1;
 
   // If there is a need to wait to poll, wait this many ms
   private long pollWaitTimeMs = POLL_WAIT_TIME_MS;
@@ -384,8 +385,8 @@ public class ReplicationServer implements TReplicationService.Iface {
         ReplicationUtils.sleep(pollWaitTimeMs);
         continue;
       }
+      long batch_size = BATCH_SIZE;
 
-      //TODO: make sure to consider this in batch mode
       // Stop if we've had enough successful jobs - for testing purposes
       // only
       long completedJobs = counters.getCounter(ReplicationCounters.Type.SUCCESSFUL_TASKS)
@@ -399,8 +400,7 @@ public class ReplicationServer implements TReplicationService.Iface {
       }
 
       // Wait if there are too many jobs
-      // TODO: respect this
-      if (jobExecutor.getNotDoneJobCount() > maxJobsInMemory) {
+      if (jobExecutor.getNotDoneJobCount() >= maxJobsInMemory) {
         LOG.debug(String.format(
             "There are too many jobs in memory. " + "Waiting until more complete. (limit: %d)",
             maxJobsInMemory));
@@ -408,60 +408,56 @@ public class ReplicationServer implements TReplicationService.Iface {
         continue;
       }
 
+      // make sure not to exceed maxJobsInMemory
+      batch_size = Math.min(batch_size, maxJobsInMemory - jobExecutor.getNotDoneJobCount());
+
       // Get an entry from the audit log
       // TODO: make this multi next
       LOG.debug("Fetching the next entry from the audit log");
-      Optional<AuditLogEntry> auditLogEntry = auditLogReader.resilientNext();
+      List<AuditLogEntry> auditLogEntries = auditLogReader.resilientNext((int) batch_size);
 
       // If there's nothing from the audit log, then wait for a little bit
       // and then try again.
-      if (!auditLogEntry.isPresent()) {
+      if (auditLogEntries.isEmpty()) {
         LOG.debug(String.format("No more entries from the audit log. " + "Sleeping for %s ms",
             pollWaitTimeMs));
         ReplicationUtils.sleep(pollWaitTimeMs);
         continue;
       }
 
-      //TODO: loop over entries
-      AuditLogEntry entry = auditLogEntry.get();
-
-      LOG.debug("Got audit log entry: " + entry);
-
-      //TODO: do this multiple times in 2 steps
       // Convert the audit log entry into a replication job, which has
       // elements persisted to the DB
-      List<ReplicationJob> replicationJobs = jobFactory.createReplicationJobs(Collections.singletonList(auditLogEntry.get()), replicationFilters).get(0);
-
-      LOG.debug(
-          String.format("Audit log entry id: %s converted to %s", entry.getId(), replicationJobs));
-
-      //TODO: add to registry after committing
-      // Add these jobs to the registry
-      for (ReplicationJob job : replicationJobs) {
-        jobRegistry.registerJob(job);
-      }
-
+      List<List<ReplicationJob>> replicationJobsJobs = jobFactory.createReplicationJobs(auditLogEntries, replicationFilters);
       // Since the replication job was created and persisted, we can
       // advance the last persisted ID. Update every 10s to reduce db
       if (System.currentTimeMillis() - updateTimeForLastPersistedId > 10000) {
-        keyValueStore.resilientSet(LAST_PERSISTED_AUDIT_LOG_ID_KEY, Long.toString(entry.getId()));
+        keyValueStore.resilientSet(LAST_PERSISTED_AUDIT_LOG_ID_KEY, Long.toString(auditLogEntries.get(auditLogEntries.size() - 1).getId()));
         updateTimeForLastPersistedId = System.currentTimeMillis();
       }
+      //LOG.debug(
+          //String.format("Audit log entry id: %s converted to %s", entry.getId(), replicationJobs));
 
-      //TODO: after adding to registry do this
-      for (ReplicationJob replicationJob : replicationJobs) {
-        LOG.debug("Scheduling: " + replicationJob);
-        prettyLogStart(replicationJob);
-        long tasksSubmittedForExecution =
-            counters.getCounter(ReplicationCounters.Type.EXECUTION_SUBMITTED_TASKS);
+      for (List<ReplicationJob> replicationJobs : replicationJobsJobs) {
+        // Add these jobs to the registry
+        for (ReplicationJob job : replicationJobs) {
+          jobRegistry.registerJob(job);
+        }
 
-        // TODO: respect this especially above and move it up
-        if (tasksSubmittedForExecution >= jobsToComplete) {
-          LOG.warn(String.format("Not submitting %s for execution "
-              + " due to the limit for the number of " + "jobs to execute", replicationJob));
-          continue;
-        } else {
-          queueJobForExecution(replicationJob);
+
+        for (ReplicationJob replicationJob : replicationJobs) {
+          LOG.debug("Scheduling: " + replicationJob);
+          prettyLogStart(replicationJob);
+          long tasksSubmittedForExecution =
+              counters.getCounter(ReplicationCounters.Type.EXECUTION_SUBMITTED_TASKS);
+
+          // TODO: respect this especially above and move it up
+          if (tasksSubmittedForExecution >= jobsToComplete) {
+            LOG.warn(String.format("Not submitting %s for execution "
+                + " due to the limit for the number of " + "jobs to execute", replicationJob));
+            continue;
+          } else {
+            queueJobForExecution(replicationJob);
+          }
         }
       }
     }
