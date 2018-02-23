@@ -30,14 +30,17 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.thrift.TException;
 
 import java.io.IOException;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
+import java.util.function.Function;
 
 /**
  * Replication server that reads entries from the audit log and replicates objects / operations
@@ -427,8 +430,7 @@ public class ReplicationServer implements TReplicationService.Iface {
       //TODO: do this multiple times in 2 steps
       // Convert the audit log entry into a replication job, which has
       // elements persisted to the DB
-      List<ReplicationJob> replicationJobs =
-          jobFactory.createReplicationJobs(auditLogEntry.get(), replicationFilters);
+      List<ReplicationJob> replicationJobs = jobFactory.createReplicationJobs(Collections.singletonList(auditLogEntry.get()), replicationFilters).get(0);
 
       LOG.debug(
           String.format("Audit log entry id: %s converted to %s", entry.getId(), replicationJobs));

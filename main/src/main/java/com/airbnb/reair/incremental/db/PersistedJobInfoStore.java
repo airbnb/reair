@@ -197,7 +197,8 @@ public class PersistedJobInfoStore {
    * @param extras any extra, non-essential key/values that should be stored with the job
    * @return a PersistedJobInfo containing the supplied parameters
    */
-  public synchronized PersistedJobInfo resilientCreate(
+  public synchronized java.util.function.Function<Long, PersistedJobInfo> resilientCreateLazy(
+      PreparedStatement ps,
       final ReplicationOperation operation,
       final ReplicationStatus status,
       final Optional<Path> srcPath,
@@ -209,14 +210,12 @@ public class PersistedJobInfoStore {
       final Optional<Path> renameToPath,
       final Map<String,
       String> extras) throws StateUpdateException {
-    final PersistedJobInfo jobInfo = new PersistedJobInfo();
-
-    final Container<PersistedJobInfo> container = new Container<PersistedJobInfo>();
+    final Container<java.util.function.Function<Long, PersistedJobInfo>> container = new Container<>();
     try {
       retryingTaskRunner.runWithRetries(new RetryableTask() {
         @Override
         public void run() throws Exception {
-          container.set(create(operation, status, srcPath, srcClusterName, srcTableSpec,
+          container.set(addBatch(ps, operation, status, srcPath, srcClusterName, srcTableSpec,
               srcPartitionNames, srcTldt, renameToObject, renameToPath, extras));
         }
       });
@@ -262,10 +261,8 @@ public class PersistedJobInfoStore {
     PreparedStatement ps = null;
     try {
       ps = getCreatePreparedStatement();
-      long timestampMillisRounded = System.currentTimeMillis() / 1000 * 1000;
-      populatePreparedStatement(
+      java.util.function.Function<Long, PersistedJobInfo> f = addBatch(
           ps,
-          timestampMillisRounded,
           operation,
           status,
           srcPath,
@@ -285,11 +282,8 @@ public class PersistedJobInfoStore {
         throw new RuntimeException("Unexpected behavior!");
       }
       long id = rs.getLong(1);
-      return new PersistedJobInfo(id, timestampMillisRounded, operation, status, srcPath, srcClusterName,
-          srcTableSpec.getDbName(), srcTableSpec.getTableName(), srcPartitionNames, srcTldt,
-          renameToObject.map(HiveObjectSpec::getDbName),
-          renameToObject.map(HiveObjectSpec::getTableName),
-          renameToObject.map(HiveObjectSpec::getPartitionName), renameToPath, extras);
+
+      return f.apply(id);
     } finally {
       if (ps == null) {
         ps.close();
@@ -374,7 +368,7 @@ public class PersistedJobInfoStore {
     ps.addBatch();
   }
 
-  private PreparedStatement getCreatePreparedStatement() throws SQLException {
+  public PreparedStatement getCreatePreparedStatement() throws SQLException {
     String query = "INSERT INTO " + dbTableName + " SET " + "create_time = ?, " + "operation = ?, "
         + "status = ?, " + "src_path = ?, " + "src_cluster = ?, " + "src_db = ?, "
         + "src_table = ?, " + "src_partitions = ?, " + "src_tldt = ?, " + "rename_to_db = ?, "
