@@ -21,7 +21,7 @@ dependencies {
   compile(group: 'com.google.guava', name: 'guava', version:'18.0')
   compile(group: 'org.apache.velocity', name: 'velocity', version:'1.7')
   provided(group: 'commons-cli', name: 'commons-cli', version:'1.2')
-  provided(group: 'mysql', name: 'mysql-connector-java', version:'5.1.17')
+  provided(group: 'mysql', name: 'mysql-connector-java', version:'5.1.18')
   provided(group: 'org.apache.commons', name: 'commons-lang3', version:'3.4')
   provided(group: 'org.apache.hadoop', name: 'hadoop-common', version:'2.5.0-cdh5.3.3')
   provided(group: 'org.apache.hadoop', name: 'hadoop-distcp', version:'2.5.0-cdh5.3.3')

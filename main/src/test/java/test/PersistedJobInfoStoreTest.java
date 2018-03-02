@@ -10,6 +10,7 @@ import com.airbnb.reair.incremental.ReplicationOperation;
 import com.airbnb.reair.incremental.ReplicationStatus;
 import com.airbnb.reair.incremental.StateUpdateException;
 import com.airbnb.reair.incremental.db.PersistedJobInfo;
+import com.airbnb.reair.incremental.db.PersistedJobInfoCreator;
 import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
 import com.airbnb.reair.utils.ReplicationTestUtils;
 
@@ -30,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public class PersistedJobInfoStoreTest {
   private static final Log LOG = LogFactory.getLog(PersistedJobInfoStoreTest.class);
@@ -63,7 +65,7 @@ public class PersistedJobInfoStoreTest {
   }
 
   @Test
-  public void testCreateAndUpdate() throws StateUpdateException, SQLException {
+  public void testCreateAndUpdate() throws StateUpdateException, SQLException, Exception {
     // Create the state table
     DbConnectionFactory dbConnectionFactory = new StaticDbConnectionFactory(
         ReplicationTestUtils.getJdbcUrl(embeddedMySqlDb, MYSQL_TEST_DB_NAME),
@@ -76,6 +78,8 @@ public class PersistedJobInfoStoreTest {
     statement.execute(PersistedJobInfoStore.getCreateTableSql("replication_jobs"));
     PersistedJobInfoStore jobStore =
         new PersistedJobInfoStore(new Configuration(), dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
+    PersistedJobInfoCreator jobInfoCreator =
+        new PersistedJobInfoCreator(dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
 
 
     // Test out creation
@@ -83,12 +87,20 @@ public class PersistedJobInfoStoreTest {
     partitionNames.add("ds=1/hr=1");
     Map<String, String> extras = new HashMap<>();
     extras.put("foo", "bar");
-    PersistedJobInfo testJob = jobStore.resilientCreate(
-        ReplicationOperation.COPY_UNPARTITIONED_TABLE, ReplicationStatus.PENDING,
-        Optional.of(new Path("file:///tmp/test_table")), "src_cluster",
-        new HiveObjectSpec("test_db", "test_table", "ds=1/hr=1"), partitionNames, Optional.of("1"),
+    CompletableFuture<PersistedJobInfo> testJobFuture = jobInfoCreator.createLater(
+        System.currentTimeMillis() / 1000 * 1000,
+        ReplicationOperation.COPY_UNPARTITIONED_TABLE,
+        ReplicationStatus.PENDING,
+        Optional.of(new Path("file:///tmp/test_table")),
+        "src_cluster",
+        new HiveObjectSpec("test_db", "test_table", "ds=1/hr=1"),
+        partitionNames,
+        Optional.of("1"),
         Optional.of(new HiveObjectSpec("test_db", "renamed_table", "ds=1/hr=1")),
-        Optional.of(new Path("file://tmp/a/b/c")), extras);
+        Optional.of(new Path("file://tmp/a/b/c")),
+        extras);
+    jobInfoCreator.completeFutures();
+    PersistedJobInfo testJob = testJobFuture.get();
 
     // Test out retrieval
     Map<Long, PersistedJobInfo> idToJob = new HashMap<>();

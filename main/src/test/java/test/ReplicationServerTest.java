@@ -20,6 +20,7 @@ import com.airbnb.reair.hive.hooks.ObjectLogModule;
 import com.airbnb.reair.incremental.DirectoryCopier;
 import com.airbnb.reair.incremental.ReplicationServer;
 import com.airbnb.reair.incremental.auditlog.AuditLogReader;
+import com.airbnb.reair.incremental.db.PersistedJobInfoCreator;
 import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
 import com.airbnb.reair.incremental.filter.PassThoughReplicationFilter;
 import com.airbnb.reair.incremental.filter.ReplicationFilter;
@@ -79,6 +80,7 @@ public class ReplicationServerTest extends MockClusterTest {
   private static DbKeyValueStore dbKeyValueStore;
   private static PersistedJobInfoStore persistedJobInfoStore;
   private static ReplicationFilter replicationFilter;
+  private static PersistedJobInfoCreator persistedJobInfoCreator;
 
   /**
    * Sets up this class for testing.
@@ -153,6 +155,10 @@ public class ReplicationServerTest extends MockClusterTest {
     persistedJobInfoStore =
         new PersistedJobInfoStore(
             conf,
+            replicationStateDbConnectionFactory,
+            REPLICATION_JOB_STATE_TABLE_NAME);
+    persistedJobInfoCreator =
+        new PersistedJobInfoCreator(
             replicationStateDbConnectionFactory,
             REPLICATION_JOB_STATE_TABLE_NAME);
 
@@ -694,6 +700,7 @@ public class ReplicationServerTest extends MockClusterTest {
         auditLogReader,
         dbKeyValueStore,
         persistedJobInfoStore,
+        persistedJobInfoCreator,
         Arrays.asList(replicationFilter),
         new DirectoryCopier(conf, srcCluster.getTmpDir(), false),
         1,
@@ -729,7 +736,7 @@ public class ReplicationServerTest extends MockClusterTest {
     replicationServer.run(1);
 
     // Verify that the object was copied
-    //assertTrue(destMetastore.existsTable(dbName, firstTableName));
+    assertTrue(destMetastore.existsTable(dbName, firstTableName));
 
     assertFalse(destMetastore.existsTable(dbName, secondTableName));
 

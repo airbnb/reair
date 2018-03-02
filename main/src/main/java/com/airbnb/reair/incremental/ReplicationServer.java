@@ -1,6 +1,7 @@
 package com.airbnb.reair.incremental;
 
 import com.airbnb.reair.common.HiveObjectSpec;
+import com.airbnb.reair.db.DbConnectionFactory;
 import com.airbnb.reair.db.DbKeyValueStore;
 import com.airbnb.reair.incremental.auditlog.AuditLogEntry;
 import com.airbnb.reair.incremental.auditlog.AuditLogEntryException;
@@ -9,6 +10,7 @@ import com.airbnb.reair.incremental.configuration.Cluster;
 import com.airbnb.reair.incremental.configuration.DestinationObjectFactory;
 import com.airbnb.reair.incremental.configuration.ObjectConflictHandler;
 import com.airbnb.reair.incremental.db.PersistedJobInfo;
+import com.airbnb.reair.incremental.db.PersistedJobInfoCreator;
 import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
 import com.airbnb.reair.incremental.filter.ReplicationFilter;
 import com.airbnb.reair.incremental.primitives.CopyPartitionTask;
@@ -51,7 +53,7 @@ public class ReplicationServer implements TReplicationService.Iface {
   private static final Log LOG = LogFactory.getLog(ReplicationServer.class);
 
   private static final long POLL_WAIT_TIME_MS = 10 * 1000;
-  private static final int BATCH_SIZE = 1;
+  private static final int BATCH_SIZE = 10;
 
   // If there is a need to wait to poll, wait this many ms
   private long pollWaitTimeMs = POLL_WAIT_TIME_MS;
@@ -164,6 +166,7 @@ public class ReplicationServer implements TReplicationService.Iface {
       AuditLogReader auditLogReader,
       DbKeyValueStore keyValueStore,
       final PersistedJobInfoStore jobInfoStore,
+      final PersistedJobInfoCreator persistedJobInfoCreator,
       List<ReplicationFilter> replicationFilters,
       DirectoryCopier directoryCopier,
       int numWorkers,
@@ -197,11 +200,13 @@ public class ReplicationServer implements TReplicationService.Iface {
         srcCluster,
         destCluster,
         jobInfoStore,
+        persistedJobInfoCreator,
         destinationObjectFactory,
         onStateChangeHandler,
         objectConflictHandler,
         copyPartitionJobExecutor,
         directoryCopier);
+
 
     this.startAfterAuditLogId = startAfterAuditLogId;
 
@@ -416,6 +421,11 @@ public class ReplicationServer implements TReplicationService.Iface {
       LOG.debug("Fetching the next entry from the audit log");
       List<AuditLogEntry> auditLogEntries = auditLogReader.resilientNext((int) batch_size);
 
+      LOG.debug(String.format("Got %d audit log entries", auditLogEntries.size()));
+      for (AuditLogEntry entry : auditLogEntries) {
+        LOG.debug("Got audit log entry: " + entry);
+      }
+
       // If there's nothing from the audit log, then wait for a little bit
       // and then try again.
       if (auditLogEntries.isEmpty()) {
@@ -428,6 +438,11 @@ public class ReplicationServer implements TReplicationService.Iface {
       // Convert the audit log entry into a replication job, which has
       // elements persisted to the DB
       List<List<ReplicationJob>> replicationJobsJobs = jobFactory.createReplicationJobs(auditLogEntries, replicationFilters);
+      int replicationJobsJobsSize = 0;
+      for (List<ReplicationJob> rj : replicationJobsJobs) {
+        replicationJobsJobsSize += rj.size();
+      }
+      LOG.debug(String.format("Persisted %d replication jobs", replicationJobsJobsSize));
       // Since the replication job was created and persisted, we can
       // advance the last persisted ID. Update every 10s to reduce db
       if (System.currentTimeMillis() - updateTimeForLastPersistedId > 10000) {
