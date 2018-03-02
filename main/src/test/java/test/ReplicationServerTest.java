@@ -704,7 +704,7 @@ public class ReplicationServerTest extends MockClusterTest {
         Arrays.asList(replicationFilter),
         new DirectoryCopier(conf, srcCluster.getTmpDir(), false),
         1,
-        1,
+        2,
         Optional.of(0L));
     replicationServer.setPollWaitTimeMs(TEST_POLL_TIME);
     return replicationServer;

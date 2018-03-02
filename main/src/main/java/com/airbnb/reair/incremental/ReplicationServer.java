@@ -53,7 +53,7 @@ public class ReplicationServer implements TReplicationService.Iface {
   private static final Log LOG = LogFactory.getLog(ReplicationServer.class);
 
   private static final long POLL_WAIT_TIME_MS = 10 * 1000;
-  private static final int BATCH_SIZE = 10;
+  private static final int BATCH_SIZE = 1;
 
   // If there is a need to wait to poll, wait this many ms
   private long pollWaitTimeMs = POLL_WAIT_TIME_MS;
@@ -445,10 +445,6 @@ public class ReplicationServer implements TReplicationService.Iface {
       LOG.debug(String.format("Persisted %d replication jobs", replicationJobsJobsSize));
       // Since the replication job was created and persisted, we can
       // advance the last persisted ID. Update every 10s to reduce db
-      if (System.currentTimeMillis() - updateTimeForLastPersistedId > 10000) {
-        keyValueStore.resilientSet(LAST_PERSISTED_AUDIT_LOG_ID_KEY, Long.toString(auditLogEntries.get(auditLogEntries.size() - 1).getId()));
-        updateTimeForLastPersistedId = System.currentTimeMillis();
-      }
       //LOG.debug(
           //String.format("Audit log entry id: %s converted to %s", entry.getId(), replicationJobs));
 
@@ -474,6 +470,10 @@ public class ReplicationServer implements TReplicationService.Iface {
             queueJobForExecution(replicationJob);
           }
         }
+      }
+      if (System.currentTimeMillis() - updateTimeForLastPersistedId > 10000) {
+        keyValueStore.resilientSet(LAST_PERSISTED_AUDIT_LOG_ID_KEY, Long.toString(auditLogEntries.get(auditLogEntries.size() - 1).getId()));
+        updateTimeForLastPersistedId = System.currentTimeMillis();
       }
     }
   }
