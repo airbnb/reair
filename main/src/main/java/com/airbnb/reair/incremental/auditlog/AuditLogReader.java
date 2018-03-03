@@ -104,7 +104,15 @@ public class AuditLogReader {
     return ret.get();
   }
 
-  public synchronized List<AuditLogEntry> resilientNext(int maxResults) throws AuditLogEntryException, SQLException {
+  /**
+   * Returns (up to) the next N results. If there is enough exceptions, no results are returned.
+   * @param maxResults the max amount of results returned (fewer are returned if fewer exist)
+   * @return A list of AuditLogEntries
+   * @throws AuditLogEntryException if the AuditLogEntry has issues
+   * @throws SQLException if SQL has issues
+   */
+  public synchronized List<AuditLogEntry> resilientNext(int maxResults)
+      throws AuditLogEntryException, SQLException {
     final Container<List<AuditLogEntry>> ret = new Container<>();
     List<AuditLogEntry> results = Collections.synchronizedList(new ArrayList<>());
 

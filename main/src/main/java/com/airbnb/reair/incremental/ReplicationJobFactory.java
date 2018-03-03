@@ -181,15 +181,18 @@ public class ReplicationJobFactory {
 
     Long timestampMillisRounded = System.currentTimeMillis() / 1000L * 1000L;
 
-    CompletableFuture<PersistedJobInfo> persistedJobInfo = persistedJobInfoCreator.createLater(timestampMillisRounded, replicationOperation,
-        ReplicationStatus.PENDING, Optional.empty(), srcCluster.getName(), spec, partitionNames,
-        Optional.empty(), Optional.empty(), Optional.empty(), extras);
+    CompletableFuture<PersistedJobInfo> persistedJobInfo =
+        persistedJobInfoCreator.createLater(
+            timestampMillisRounded, replicationOperation, ReplicationStatus.PENDING,
+            Optional.empty(), srcCluster.getName(), spec, partitionNames,
+            Optional.empty(), Optional.empty(), Optional.empty(), extras);
 
     ReplicationTask replicationTask = new CopyPartitionTask(conf, destinationObjectFactory,
         objectConflictHandler, srcCluster, destCluster, spec, Optional.<Path>empty(),
         Optional.<Path>empty(), directoryCopier, true);
 
-    return persistedJobInfo.thenApply((jobInfo) -> new ReplicationJob(conf, replicationTask, onStateChangeHandler, jobInfo));
+    return persistedJobInfo.thenApply(
+        (jobInfo) -> new ReplicationJob(conf, replicationTask, onStateChangeHandler, jobInfo));
   }
 
   /**
@@ -221,15 +224,17 @@ public class ReplicationJobFactory {
     HiveObjectSpec spec = new HiveObjectSpec(namedPartition);
     Long timestamp = getTime();
     CompletableFuture<PersistedJobInfo> persistedJobInfo =
-        persistedJobInfoCreator.createLater(timestamp, replicationOperation, ReplicationStatus.PENDING,
+        persistedJobInfoCreator.createLater(
+            timestamp, replicationOperation, ReplicationStatus.PENDING,
             ReplicationUtils.getLocation(partition), srcCluster.getName(), spec, partitionNames,
             ReplicationUtils.getTldt(partition), Optional.empty(), Optional.empty(), extras);
 
-    ReplicationTask replicationTask = new CopyPartitionTask(conf, destinationObjectFactory,
-        objectConflictHandler, srcCluster, destCluster, spec,
-        ReplicationUtils.getLocation(partition), Optional.<Path>empty(), directoryCopier, true);
+    ReplicationTask replicationTask = new CopyPartitionTask(
+        conf, destinationObjectFactory, objectConflictHandler, srcCluster, destCluster, spec,
+        ReplicationUtils.getLocation(partition), Optional.empty(), directoryCopier, true);
 
-    return persistedJobInfo.thenApply((jobInfo) -> new ReplicationJob(conf, replicationTask, onStateChangeHandler, jobInfo));
+    return persistedJobInfo.thenApply(
+        (jobInfo) -> new ReplicationJob(conf, replicationTask, onStateChangeHandler, jobInfo));
   }
 
   /**
@@ -266,15 +271,18 @@ public class ReplicationJobFactory {
         Long.toString(auditLogEntryCreateTime));
 
     Long timestamp = getTime();
-    CompletableFuture<PersistedJobInfo> persistedJobInfo = persistedJobInfoCreator.createLater(timestamp, replicationOperation,
-        ReplicationStatus.PENDING, commonLocation, srcCluster.getName(), tableSpec, partitionNames,
-        Optional.empty(), Optional.empty(), Optional.empty(), extras);
+    CompletableFuture<PersistedJobInfo> persistedJobInfo =
+        persistedJobInfoCreator.createLater(
+            timestamp, replicationOperation, ReplicationStatus.PENDING, commonLocation,
+            srcCluster.getName(), tableSpec, partitionNames,
+            Optional.empty(), Optional.empty(), Optional.empty(), extras);
 
     ReplicationTask replicationTask = new CopyPartitionsTask(conf, destinationObjectFactory,
         objectConflictHandler, srcCluster, destCluster, tableSpec, partitionNames, commonLocation,
         copyPartitionJobExecutor, directoryCopier);
 
-    return persistedJobInfo.thenApply((jobInfo) -> new ReplicationJob(conf, replicationTask, onStateChangeHandler, jobInfo));
+    return persistedJobInfo.thenApply(
+        (jobInfo) -> new ReplicationJob(conf, replicationTask, onStateChangeHandler, jobInfo));
   }
 
   /**
@@ -318,10 +326,12 @@ public class ReplicationJobFactory {
     HiveObjectSpec tableSpec = new HiveObjectSpec(table);
 
     Long timestamp = getTime();
-    CompletableFuture<PersistedJobInfo> persistedJobInfo = persistedJobInfoCreator.createLater(timestamp, replicationOperation,
-        ReplicationStatus.PENDING, ReplicationUtils.getLocation(table), srcCluster.getName(),
-        tableSpec, Collections.emptyList(), ReplicationUtils.getTldt(table), Optional.empty(),
-        Optional.empty(), extras);
+    CompletableFuture<PersistedJobInfo> persistedJobInfo =
+        persistedJobInfoCreator.createLater(
+            timestamp, replicationOperation, ReplicationStatus.PENDING,
+            ReplicationUtils.getLocation(table), srcCluster.getName(), tableSpec,
+            Collections.emptyList(), ReplicationUtils.getTldt(table), Optional.empty(),
+            Optional.empty(), extras);
 
     return persistedJobInfo.thenApply((jobInfo) -> new ReplicationJob(
         conf,
@@ -359,10 +369,12 @@ public class ReplicationJobFactory {
     partitionNames.add(namedPartition.getName());
     Optional<String> partitionTldt = ReplicationUtils.getTldt(namedPartition.getPartition());
     Long timestamp = getTime();
-    CompletableFuture<PersistedJobInfo> persistedJobInfo = persistedJobInfoCreator.createLater(timestamp, replicationOperation,
-        ReplicationStatus.PENDING, ReplicationUtils.getLocation(namedPartition.getPartition()),
-        srcCluster.getName(), partitionSpec.getTableSpec(), partitionNames, partitionTldt,
-        Optional.empty(), Optional.empty(), extras);
+    CompletableFuture<PersistedJobInfo> persistedJobInfo =
+        persistedJobInfoCreator.createLater(
+            timestamp, replicationOperation, ReplicationStatus.PENDING,
+            ReplicationUtils.getLocation(namedPartition.getPartition()),
+            srcCluster.getName(), partitionSpec.getTableSpec(), partitionNames, partitionTldt,
+            Optional.empty(), Optional.empty(), extras);
 
     return persistedJobInfo.thenApply((jobInfo) -> new ReplicationJob(
         conf,
@@ -387,10 +399,10 @@ public class ReplicationJobFactory {
    * @throws StateUpdateException if there's an error writing to the DB
    */
   public CompletableFuture<ReplicationJob> createJobForRenameTable(
-    long auditLogId,
-    long auditLogEntryCreateTime,
-    Table renameFromTable,
-    Table renameToTable) throws StateUpdateException {
+      long auditLogId,
+      long auditLogEntryCreateTime,
+      Table renameFromTable,
+      Table renameToTable) throws StateUpdateException {
     ReplicationOperation replicationOperation = ReplicationOperation.RENAME_TABLE;
 
     Map<String, String> extras = new HashMap<>();
@@ -404,10 +416,12 @@ public class ReplicationJobFactory {
     Optional<Path> renameToPath = ReplicationUtils.getLocation(renameToTable);
 
     Long timestamp = getTime();
-    CompletableFuture<PersistedJobInfo> persistedJobInfo = persistedJobInfoCreator.createLater(timestamp, replicationOperation,
-        ReplicationStatus.PENDING, renameFromPath, srcCluster.getName(), renameFromTableSpec,
-        new ArrayList<>(), ReplicationUtils.getTldt(renameFromTable),
-        Optional.of(renameToTableSpec), renameToPath, extras);
+    CompletableFuture<PersistedJobInfo> persistedJobInfo =
+        persistedJobInfoCreator.createLater(
+            timestamp, replicationOperation, ReplicationStatus.PENDING, renameFromPath,
+            srcCluster.getName(), renameFromTableSpec,
+            new ArrayList<>(), ReplicationUtils.getTldt(renameFromTable),
+            Optional.of(renameToTableSpec), renameToPath, extras);
 
     return persistedJobInfo.thenApply((jobInfo) -> new ReplicationJob(
         conf,
@@ -456,10 +470,12 @@ public class ReplicationJobFactory {
     Optional renameToPath = ReplicationUtils.getLocation(renameToPartition.getPartition());
 
     Long timestamp = getTime();
-    CompletableFuture<PersistedJobInfo> persistedJobInfo = persistedJobInfoCreator.createLater(timestamp, replicationOperation,
-        ReplicationStatus.PENDING, renameFromPath, srcCluster.getName(), renameFromPartitionSpec,
-        new ArrayList<>(), ReplicationUtils.getTldt(renameFromPartition.getPartition()),
-        Optional.of(renameToPartitionSpec), renameToPath, extras);
+    CompletableFuture<PersistedJobInfo> persistedJobInfo =
+        persistedJobInfoCreator.createLater(
+            timestamp, replicationOperation, ReplicationStatus.PENDING, renameFromPath,
+            srcCluster.getName(), renameFromPartitionSpec,
+            new ArrayList<>(), ReplicationUtils.getTldt(renameFromPartition.getPartition()),
+            Optional.of(renameToPartitionSpec), renameToPath, extras);
 
     return persistedJobInfo.thenApply((jobInfo) -> new ReplicationJob(
         conf,
@@ -482,6 +498,16 @@ public class ReplicationJobFactory {
     COPY, DROP, RENAME
   }
 
+  /**
+   * Creates ReplicationJobs for a list of AuditLogEntries. The lists of lists
+   * return correspond naturally (ie first AuditLogEntry corresponds to first List).
+   * The filters are used in each request
+   * @param auditLogEntries A list of N AuditLogEntries
+   * @param replicationFilters A list of M replication filter to be used in each AuditLogEntry
+   * @return A List of List of Replication Jobs, with each List of Replication Job corresponding
+   *     to the i^th audit log entry
+   * @throws StateUpdateException if there is a MySQL issue
+   */
   public List<List<ReplicationJob>> createReplicationJobs(
       List<AuditLogEntry> auditLogEntries,
       List<ReplicationFilter> replicationFilters) throws StateUpdateException {
@@ -786,9 +812,5 @@ public class ReplicationJobFactory {
 
   public static Long getTime() {
     return System.currentTimeMillis() * 1000L / 1000L;
-  }
-
-  public void finalizeCreates() throws SQLException {
-    persistedJobInfoCreator.completeFutures();
   }
 }

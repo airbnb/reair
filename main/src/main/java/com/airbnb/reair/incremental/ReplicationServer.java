@@ -390,7 +390,7 @@ public class ReplicationServer implements TReplicationService.Iface {
         ReplicationUtils.sleep(pollWaitTimeMs);
         continue;
       }
-      long batch_size = BATCH_SIZE;
+      long batchSize = BATCH_SIZE;
 
       // Stop if we've had enough successful jobs - for testing purposes
       // only
@@ -414,12 +414,12 @@ public class ReplicationServer implements TReplicationService.Iface {
       }
 
       // make sure not to exceed maxJobsInMemory
-      batch_size = Math.min(batch_size, maxJobsInMemory - jobExecutor.getNotDoneJobCount());
+      batchSize = Math.min(batchSize, maxJobsInMemory - jobExecutor.getNotDoneJobCount());
 
       // Get an entry from the audit log
       // TODO: make this multi next
       LOG.debug("Fetching the next entry from the audit log");
-      List<AuditLogEntry> auditLogEntries = auditLogReader.resilientNext((int) batch_size);
+      List<AuditLogEntry> auditLogEntries = auditLogReader.resilientNext((int) batchSize);
 
       LOG.debug(String.format("Got %d audit log entries", auditLogEntries.size()));
       for (AuditLogEntry entry : auditLogEntries) {
@@ -437,7 +437,8 @@ public class ReplicationServer implements TReplicationService.Iface {
 
       // Convert the audit log entry into a replication job, which has
       // elements persisted to the DB
-      List<List<ReplicationJob>> replicationJobsJobs = jobFactory.createReplicationJobs(auditLogEntries, replicationFilters);
+      List<List<ReplicationJob>> replicationJobsJobs =
+          jobFactory.createReplicationJobs(auditLogEntries, replicationFilters);
       int replicationJobsJobsSize = 0;
       for (List<ReplicationJob> rj : replicationJobsJobs) {
         replicationJobsJobsSize += rj.size();
@@ -446,7 +447,7 @@ public class ReplicationServer implements TReplicationService.Iface {
       // Since the replication job was created and persisted, we can
       // advance the last persisted ID. Update every 10s to reduce db
       //LOG.debug(
-          //String.format("Audit log entry id: %s converted to %s", entry.getId(), replicationJobs));
+      //String.format("Audit log entry id: %s converted to %s", entry.getId(), replicationJobs));
 
       for (List<ReplicationJob> replicationJobs : replicationJobsJobs) {
         // Add these jobs to the registry
@@ -472,7 +473,9 @@ public class ReplicationServer implements TReplicationService.Iface {
         }
       }
       if (System.currentTimeMillis() - updateTimeForLastPersistedId > 10000) {
-        keyValueStore.resilientSet(LAST_PERSISTED_AUDIT_LOG_ID_KEY, Long.toString(auditLogEntries.get(auditLogEntries.size() - 1).getId()));
+        keyValueStore.resilientSet(
+            LAST_PERSISTED_AUDIT_LOG_ID_KEY,
+            Long.toString(auditLogEntries.get(auditLogEntries.size() - 1).getId()));
         updateTimeForLastPersistedId = System.currentTimeMillis();
       }
     }

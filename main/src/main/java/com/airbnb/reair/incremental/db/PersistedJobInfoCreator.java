@@ -32,6 +32,13 @@ public class PersistedJobInfoCreator {
 
   private static final int BATCH_SIZE = 32;
 
+  /**
+   * Creates rows for PersistedJobInfo in batches. You can add to the batch
+   * with createLater, and finalize with completeFutures.
+   *
+   * @param dbConnectionFactory DbConnectionFactory for state table
+   * @param dbTableName Name of state table
+   */
   public PersistedJobInfoCreator(DbConnectionFactory dbConnectionFactory, String dbTableName) {
     vars = new ArrayList<>(BATCH_SIZE);
     futures = new ArrayList<>(BATCH_SIZE);
@@ -39,6 +46,24 @@ public class PersistedJobInfoCreator {
     this.dbTableName = dbTableName;
   }
 
+  /**
+   * Returns a CompletableFuture for PersistedJobInfo. The future is
+   * completed when completeFutures is called.
+   *
+   * @param timestampMillisRounded Timestamp in millis rounded to nearest second
+   * @param operation the hive operation
+   * @param status the status to be used
+   * @param srcPath the source path
+   * @param srcClusterName the source cluster name
+   * @param srcTableSpec the source table spec
+   * @param srcPartitionNames the source partition names
+   * @param srcTldt the source TLDT
+   * @param renameToObject whether to rename or not
+   * @param renameToPath whether to rename or not
+   * @param extras a map of extras
+   * @return A CompletableFuture of the PersistedJobInfo
+   * @throws StateUpdateException when there is a SQL error
+   */
   public CompletableFuture<PersistedJobInfo> createLater(
       long timestampMillisRounded,
       ReplicationOperation operation,
@@ -68,8 +93,9 @@ public class PersistedJobInfoCreator {
       CompletableFuture<Long> longCompletableFuture = new CompletableFuture<>();
       futures.add(longCompletableFuture);
       Function<Long, PersistedJobInfo> creationFunction = (Long id) ->
-          new PersistedJobInfo(id, timestampMillisRounded, operation, status, srcPath, srcClusterName,
-              srcTableSpec.getDbName(), srcTableSpec.getTableName(), srcPartitionNames, srcTldt,
+          new PersistedJobInfo(id, timestampMillisRounded, operation, status, srcPath,
+              srcClusterName, srcTableSpec.getDbName(), srcTableSpec.getTableName(),
+              srcPartitionNames, srcTldt,
               renameToObject.map(HiveObjectSpec::getDbName),
               renameToObject.map(HiveObjectSpec::getTableName),
               renameToObject.map(HiveObjectSpec::getPartitionName),
@@ -80,10 +106,20 @@ public class PersistedJobInfoCreator {
     }
   }
 
+  /**
+   * Complete all existing futures in the buffer, creating
+   * a SQL entry for each.
+   *
+   * @throws SQLException if there is a SQL issue
+   */
   public void completeFutures() throws SQLException {
+    if (futures.size() == 0) {
+      return;
+    }
     String query = generateQuery();
     try (Connection connection = dbConnectionFactory.getConnection()) {
-      try (PreparedStatement ps = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+      try (PreparedStatement ps =
+               connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
         int queryParamIndex = 1;
         for (QueryParams queryParams : vars) {
           ps.setTimestamp(queryParamIndex++, queryParams.timestamp);
@@ -117,9 +153,9 @@ public class PersistedJobInfoCreator {
     String valuesStr = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     StringBuffer sb = new StringBuffer();
     sb.append(
-        "INSERT INTO " + dbTableName + " (create_time, operation, status, src_path, " +
-        "src_cluster, src_db, src_table, src_partitions, src_tldt, rename_to_db, " +
-        "rename_to_table, rename_to_partition, rename_to_path, extras) VALUES ");
+        "INSERT INTO " + dbTableName + " (create_time, operation, status, src_path, "
+        + "src_cluster, src_db, src_table, src_partitions, src_tldt, rename_to_db, "
+        + "rename_to_table, rename_to_partition, rename_to_path, extras) VALUES ");
     for (int i = 1; i < vars.size(); i++) {
       sb.append(valuesStr);
       sb.append(" , ");
@@ -166,8 +202,10 @@ public class PersistedJobInfoCreator {
       this.srcPartitionNames = ReplicationUtils.convertToJson(srcPartitionNames);
       this.srcTldt = srcTldt.orElse(null);
       this.renameToObjectDbName = renameToObject.map(HiveObjectSpec::getDbName).orElse(null);
-      this.renameToObjectTableName = renameToObject.map(HiveObjectSpec::getTableName).orElse(null);
-      this.renameToObjectPartitionName = renameToObject.map(HiveObjectSpec::getPartitionName).orElse(null);
+      this.renameToObjectTableName =
+          renameToObject.map(HiveObjectSpec::getTableName).orElse(null);
+      this.renameToObjectPartitionName =
+          renameToObject.map(HiveObjectSpec::getPartitionName).orElse(null);
       this.renameToPath = renameToPath.map(Path::toString).orElse(null);
       this.extras = ReplicationUtils.convertToJson(extras);
     }
