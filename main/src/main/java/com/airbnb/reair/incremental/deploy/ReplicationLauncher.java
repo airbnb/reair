@@ -118,7 +118,7 @@ public class ReplicationLauncher {
             conf,
             stateConnectionFactory,
             stateTableName);
-    PersistedJobInfoCreator persistedJobInfoCreator =
+    final PersistedJobInfoCreator persistedJobInfoCreator =
         new PersistedJobInfoCreator(
             stateConnectionFactory,
             stateTableName);

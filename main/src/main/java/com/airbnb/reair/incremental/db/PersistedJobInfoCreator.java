@@ -8,6 +8,8 @@ import com.airbnb.reair.incremental.ReplicationStatus;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.StateUpdateException;
 
+import org.apache.hadoop.fs.Path;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -21,8 +23,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-
-import org.apache.hadoop.fs.Path;
 
 public class PersistedJobInfoCreator {
   private ArrayList<QueryParams> vars;
