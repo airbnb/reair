@@ -68,7 +68,7 @@ public class PersistedJobInfoCreator {
    * @return A CompletableFuture of the PersistedJobInfo
    * @throws StateUpdateException when there is a SQL error
    */
-  public CompletableFuture<PersistedJobInfo> createLater(
+  public synchronized CompletableFuture<PersistedJobInfo> createLater(
       long timestampMillisRounded,
       ReplicationOperation operation,
       ReplicationStatus status,
@@ -116,8 +116,8 @@ public class PersistedJobInfoCreator {
    *
    * @throws SQLException if there is a SQL issue
    */
-  public void completeFutures() throws SQLException {
-    LOG.debug(String.format("Completing %d futures with %d vars", futures.size(), vars.size()));
+  public synchronized void completeFutures() throws SQLException {
+    LOG.debug(String.format("Creating %d lazy ReplicationJobs", futures.size()));
     if (futures.size() == 0) {
       return;
     }
@@ -145,7 +145,6 @@ public class PersistedJobInfoCreator {
       ps.execute();
       ResultSet rs = ps.getGeneratedKeys();
       for (CompletableFuture<Long> f : futures) {
-        LOG.debug("blah");
         rs.next();
         f.complete(rs.getLong(1));
       }

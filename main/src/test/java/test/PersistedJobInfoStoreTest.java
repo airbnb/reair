@@ -76,7 +76,7 @@ public class PersistedJobInfoStoreTest {
     Connection connection = dbConnectionFactory.getConnection();
     Statement statement = connection.createStatement();
     statement.execute(PersistedJobInfoStore.getCreateTableSql("replication_jobs"));
-    PersistedJobInfoStore jobStore =
+    final PersistedJobInfoStore jobStore =
         new PersistedJobInfoStore(new Configuration(), dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
     PersistedJobInfoCreator jobInfoCreator =
         new PersistedJobInfoCreator(dbConnectionFactory, MYSQL_TEST_TABLE_NAME);

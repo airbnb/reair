@@ -1,5 +1,8 @@
 package test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import com.airbnb.reair.common.HiveObjectSpec;
 import com.airbnb.reair.db.DbConnectionFactory;
 import com.airbnb.reair.db.EmbeddedMySqlDb;
@@ -10,6 +13,9 @@ import com.airbnb.reair.incremental.db.PersistedJobInfo;
 import com.airbnb.reair.incremental.db.PersistedJobInfoCreator;
 import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
 import com.airbnb.reair.utils.ReplicationTestUtils;
+
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -22,20 +28,17 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 public class PersistedJobInfoCreatorTest {
   private static EmbeddedMySqlDb embeddedMySqlDb;
   private static DbConnectionFactory dbConnectionFactory;
   private static final String MYSQL_TEST_DB_NAME = "replication_test";
   private static final String MYSQL_TEST_TABLE_NAME = "replication_jobs";
 
+  /**
+   * Sets up the class with DBs.
+   * @throws ClassNotFoundException for jdbc issues
+   * @throws SQLException if mysql has issues
+   */
   @BeforeClass
   public static void setupClass() throws ClassNotFoundException, SQLException {
     embeddedMySqlDb = new EmbeddedMySqlDb();
@@ -61,7 +64,8 @@ public class PersistedJobInfoCreatorTest {
 
   @Test
   public void testCreateOne() throws Exception {
-    PersistedJobInfoCreator jobInfoCreator = new PersistedJobInfoCreator(dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
+    PersistedJobInfoCreator jobInfoCreator = new PersistedJobInfoCreator(
+        dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
 
     Long time = System.currentTimeMillis() / 1000 * 1000;
     HiveObjectSpec hiveObjectSpec = new HiveObjectSpec(
@@ -87,7 +91,8 @@ public class PersistedJobInfoCreatorTest {
 
   @Test
   public void testCreateManyWithMany() throws Exception {
-    PersistedJobInfoCreator jobInfoCreator = new PersistedJobInfoCreator(dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
+    PersistedJobInfoCreator jobInfoCreator = new PersistedJobInfoCreator(
+        dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
 
     List<List<String>> expectedResults = new ArrayList<>();
     List<String> results1 = new ArrayList<>(Arrays.asList("aa", "ab", "ac", "ad"));
@@ -129,7 +134,9 @@ public class PersistedJobInfoCreatorTest {
     for (int i = 0; i < expectedResults.size(); i++) {
       assertEquals(expectedResults.get(i).size(), actualResults.get(i).size());
       for (int j = 0; j < expectedResults.get(i).size(); j++) {
-        assertEquals(expectedResults.get(i).get(j), actualResults.get(i).get(j).get().getSrcClusterName());
+        assertEquals(
+            expectedResults.get(i).get(j),
+            actualResults.get(i).get(j).get().getSrcClusterName());
       }
     }
     jobInfoCreator.completeFutures();
@@ -137,7 +144,8 @@ public class PersistedJobInfoCreatorTest {
 
   @Test
   public void testCreateNone() throws SQLException {
-    PersistedJobInfoCreator jobInfoCreator = new PersistedJobInfoCreator(dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
+    PersistedJobInfoCreator jobInfoCreator = new PersistedJobInfoCreator(
+        dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
     jobInfoCreator.completeFutures();
   }
 }
