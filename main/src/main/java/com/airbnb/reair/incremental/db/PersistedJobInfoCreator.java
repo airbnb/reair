@@ -204,12 +204,19 @@ public class PersistedJobInfoCreator {
       this.srcTableSpecTableName = srcTableSpec.getTableName();
       this.srcPartitionNames = ReplicationUtils.convertToJson(srcPartitionNames);
       this.srcTldt = srcTldt.orElse(null);
-      this.renameToObjectDbName = renameToObject.map(HiveObjectSpec::getDbName).orElse(null);
-      this.renameToObjectTableName =
-          renameToObject.map(HiveObjectSpec::getTableName).orElse(null);
-      this.renameToObjectPartitionName =
-          renameToObject.map(HiveObjectSpec::getPartitionName).orElse(null);
-      this.renameToPath = renameToPath.map(Path::toString).orElse(null);
+      if (renameToObject.isPresent()) {
+        this.renameToObjectDbName = renameToObject.map(HiveObjectSpec::getDbName).orElse(null);
+        this.renameToObjectTableName =
+            renameToObject.map(HiveObjectSpec::getTableName).orElse(null);
+        this.renameToObjectPartitionName =
+            renameToObject.map(HiveObjectSpec::getPartitionName).orElse(null);
+        this.renameToPath = renameToPath.map(Path::toString).orElse(null);
+      } else {
+        this.renameToObjectDbName = null;
+        this.renameToObjectTableName = null;
+        this.renameToObjectPartitionName = null;
+        this.renameToPath = null;
+      }
       this.extras = ReplicationUtils.convertToJson(extras);
     }
   }

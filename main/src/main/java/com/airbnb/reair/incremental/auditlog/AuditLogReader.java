@@ -105,7 +105,8 @@ public class AuditLogReader {
   }
 
   /**
-   * Returns (up to) the next N results. If there is enough exceptions, no results are returned.
+   * Returns (up to) the next N results. If we pass max retries, an exception is thrown,
+   * even if some results were retrieved successfully.
    * @param maxResults the max amount of results returned (fewer are returned if fewer exist)
    * @return A list of AuditLogEntries
    * @throws AuditLogEntryException if the AuditLogEntry has issues
