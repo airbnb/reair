@@ -220,5 +220,4 @@ public class PersistedJobInfoCreator {
       this.extras = ReplicationUtils.convertToJson(extras);
     }
   }
-
 }
