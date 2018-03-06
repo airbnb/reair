@@ -88,7 +88,6 @@ public class PersistedJobInfoStoreTest {
     Map<String, String> extras = new HashMap<>();
     extras.put("foo", "bar");
     CompletableFuture<PersistedJobInfo> testJobFuture = jobInfoCreator.createLater(
-        System.currentTimeMillis() / 1000 * 1000,
         ReplicationOperation.COPY_UNPARTITIONED_TABLE,
         ReplicationStatus.PENDING,
         Optional.of(new Path("file:///tmp/test_table")),

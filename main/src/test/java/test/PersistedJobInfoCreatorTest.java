@@ -67,13 +67,11 @@ public class PersistedJobInfoCreatorTest {
     PersistedJobInfoCreator jobInfoCreator = new PersistedJobInfoCreator(
         dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
 
-    Long time = System.currentTimeMillis() / 1000 * 1000;
     HiveObjectSpec hiveObjectSpec = new HiveObjectSpec(
         "a","b");
     List<String> srcPartitionNames = new ArrayList<>();
     CompletableFuture<PersistedJobInfo> persistedJobInfoCompletableFuture =
         jobInfoCreator.createLater(
-          time,
           ReplicationOperation.COPY_PARTITION,
           ReplicationStatus.PENDING,
           Optional.empty(),
@@ -115,7 +113,6 @@ public class PersistedJobInfoCreatorTest {
       for (String srcCluster : ll) {
         CompletableFuture<PersistedJobInfo> persistedJobInfoCompletableFuture =
             jobInfoCreator.createLater(
-                System.currentTimeMillis() / 1000 * 1000,
                 ReplicationOperation.COPY_PARTITION,
                 ReplicationStatus.PENDING,
                 Optional.empty(),

@@ -54,7 +54,6 @@ public class PersistedJobInfoCreator {
    * Returns a CompletableFuture for PersistedJobInfo. The future is
    * completed when completeFutures is called.
    *
-   * @param timestampMillisRounded Timestamp in millis rounded to nearest second
    * @param operation the hive operation
    * @param status the status to be used
    * @param srcPath the source path
@@ -69,7 +68,6 @@ public class PersistedJobInfoCreator {
    * @throws StateUpdateException when there is a SQL error
    */
   public synchronized CompletableFuture<PersistedJobInfo> createLater(
-      long timestampMillisRounded,
       ReplicationOperation operation,
       ReplicationStatus status,
       Optional<Path> srcPath,
@@ -81,6 +79,7 @@ public class PersistedJobInfoCreator {
       Optional<Path> renameToPath,
       Map<String, String> extras) throws StateUpdateException {
     try {
+      long timestampMillisRounded = System.currentTimeMillis() / 1000L * 1000L;
       QueryParams qp = new QueryParams(
           timestampMillisRounded,
           operation,
