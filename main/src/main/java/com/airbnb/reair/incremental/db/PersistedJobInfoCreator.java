@@ -117,32 +117,31 @@ public class PersistedJobInfoCreator {
       return;
     }
     String query = generateQuery();
-    try (Connection connection = dbConnectionFactory.getConnection()) {
-      try (PreparedStatement ps =
-               connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
-        int queryParamIndex = 1;
-        for (QueryParams queryParams : vars) {
-          ps.setTimestamp(queryParamIndex++, queryParams.timestamp);
-          ps.setString(queryParamIndex++, queryParams.operation);
-          ps.setString(queryParamIndex++, queryParams.status);
-          ps.setString(queryParamIndex++, queryParams.srcPath);
-          ps.setString(queryParamIndex++, queryParams.srcClusterName);
-          ps.setString(queryParamIndex++, queryParams.srcTableSpecDbName);
-          ps.setString(queryParamIndex++, queryParams.srcTableSpecTableName);
-          ps.setString(queryParamIndex++, queryParams.srcPartitionNames);
-          ps.setString(queryParamIndex++, queryParams.srcTldt);
-          ps.setString(queryParamIndex++, queryParams.renameToObjectDbName);
-          ps.setString(queryParamIndex++, queryParams.renameToObjectTableName);
-          ps.setString(queryParamIndex++, queryParams.renameToObjectPartitionName);
-          ps.setString(queryParamIndex++, queryParams.renameToPath);
-          ps.setString(queryParamIndex++, queryParams.extras);
-        }
-        ps.execute();
-        ResultSet rs = ps.getGeneratedKeys();
-        for (CompletableFuture<Long> f : futures) {
-          rs.next();
-          f.complete(rs.getLong(1));
-        }
+    Connection connection = dbConnectionFactory.getConnection();
+    try (PreparedStatement ps =
+             connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+      int queryParamIndex = 1;
+      for (QueryParams queryParams : vars) {
+        ps.setTimestamp(queryParamIndex++, queryParams.timestamp);
+        ps.setString(queryParamIndex++, queryParams.operation);
+        ps.setString(queryParamIndex++, queryParams.status);
+        ps.setString(queryParamIndex++, queryParams.srcPath);
+        ps.setString(queryParamIndex++, queryParams.srcClusterName);
+        ps.setString(queryParamIndex++, queryParams.srcTableSpecDbName);
+        ps.setString(queryParamIndex++, queryParams.srcTableSpecTableName);
+        ps.setString(queryParamIndex++, queryParams.srcPartitionNames);
+        ps.setString(queryParamIndex++, queryParams.srcTldt);
+        ps.setString(queryParamIndex++, queryParams.renameToObjectDbName);
+        ps.setString(queryParamIndex++, queryParams.renameToObjectTableName);
+        ps.setString(queryParamIndex++, queryParams.renameToObjectPartitionName);
+        ps.setString(queryParamIndex++, queryParams.renameToPath);
+        ps.setString(queryParamIndex++, queryParams.extras);
+      }
+      ps.execute();
+      ResultSet rs = ps.getGeneratedKeys();
+      for (CompletableFuture<Long> f : futures) {
+        rs.next();
+        f.complete(rs.getLong(1));
       }
     }
     vars.clear();
