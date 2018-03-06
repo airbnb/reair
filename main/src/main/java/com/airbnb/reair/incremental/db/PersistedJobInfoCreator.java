@@ -8,6 +8,8 @@ import com.airbnb.reair.incremental.ReplicationStatus;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.StateUpdateException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
@@ -25,6 +27,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public class PersistedJobInfoCreator {
+  private static final Log LOG = LogFactory.getLog(PersistedJobInfoCreator.class);
+
   private ArrayList<QueryParams> vars;
   private ArrayList<CompletableFuture<Long>> futures;
   private DbConnectionFactory dbConnectionFactory;
@@ -100,7 +104,7 @@ public class PersistedJobInfoCreator {
               renameToObject.map(HiveObjectSpec::getTableName),
               renameToObject.map(HiveObjectSpec::getPartitionName),
               renameToPath, extras);
-      return longCompletableFuture.thenApplyAsync(creationFunction);
+      return longCompletableFuture.thenApply(creationFunction);
     } catch (IOException e) {
       throw new StateUpdateException(e);
     }
@@ -113,6 +117,7 @@ public class PersistedJobInfoCreator {
    * @throws SQLException if there is a SQL issue
    */
   public void completeFutures() throws SQLException {
+    LOG.debug(String.format("Completing %d futures with %d vars", futures.size(), vars.size()));
     if (futures.size() == 0) {
       return;
     }
@@ -140,6 +145,7 @@ public class PersistedJobInfoCreator {
       ps.execute();
       ResultSet rs = ps.getGeneratedKeys();
       for (CompletableFuture<Long> f : futures) {
+        LOG.debug("blah");
         rs.next();
         f.complete(rs.getLong(1));
       }
