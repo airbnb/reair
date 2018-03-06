@@ -54,8 +54,8 @@ public class PersistedJobInfoCreatorTest {
     Connection connection1 = dbConnectionFactory.getConnection();
     Statement statement1 = connection1.createStatement();
     statement1.execute(PersistedJobInfoStore.getCreateTableSql(MYSQL_TEST_TABLE_NAME));
-    connection.close();
-    connection1.close();
+    statement.close();
+    statement1.close();
   }
 
   @Test

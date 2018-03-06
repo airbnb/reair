@@ -58,8 +58,6 @@ public class ReplicationJobFactory {
   private Configuration conf;
   private Cluster srcCluster;
   private Cluster destCluster;
-  //TODO: remove
-  public PersistedJobInfoStore jobInfoStore;
   private DestinationObjectFactory destinationObjectFactory;
   private OnStateChangeHandler onStateChangeHandler;
   private ObjectConflictHandler objectConflictHandler;
@@ -73,7 +71,7 @@ public class ReplicationJobFactory {
    * @param conf configuration
    * @param srcCluster source cluster
    * @param destCluster destination cluster
-   * @param jobInfoStore persistent store for jobs
+   * @param persistedJobInfoCreator PersistedJobInfoCreator
    * @param destinationObjectFactory factory for creating objects for the destination cluster
    * @param onStateChangeHandler handler for when a job's state changes
    * @param objectConflictHandler handler for addressing conflicting tables/partitions on the
@@ -85,7 +83,6 @@ public class ReplicationJobFactory {
       Configuration conf,
       Cluster srcCluster,
       Cluster destCluster,
-      PersistedJobInfoStore jobInfoStore,
       PersistedJobInfoCreator persistedJobInfoCreator,
       DestinationObjectFactory destinationObjectFactory,
       OnStateChangeHandler onStateChangeHandler,
@@ -95,7 +92,6 @@ public class ReplicationJobFactory {
     this.conf = conf;
     this.srcCluster = srcCluster;
     this.destCluster = destCluster;
-    this.jobInfoStore = jobInfoStore;
     this.destinationObjectFactory = destinationObjectFactory;
     this.onStateChangeHandler = onStateChangeHandler;
     this.objectConflictHandler = objectConflictHandler;

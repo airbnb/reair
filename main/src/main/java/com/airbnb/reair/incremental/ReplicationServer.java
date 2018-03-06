@@ -199,7 +199,6 @@ public class ReplicationServer implements TReplicationService.Iface {
         conf,
         srcCluster,
         destCluster,
-        jobInfoStore,
         persistedJobInfoCreator,
         destinationObjectFactory,
         onStateChangeHandler,
@@ -416,8 +415,7 @@ public class ReplicationServer implements TReplicationService.Iface {
       // make sure not to exceed maxJobsInMemory
       batchSize = Math.min(batchSize, maxJobsInMemory - jobExecutor.getNotDoneJobCount());
 
-      // Get an entry from the audit log
-      // TODO: make this multi next
+      // Get a few entries from the audit log
       LOG.debug("Fetching the next entry from the audit log");
       List<AuditLogEntry> auditLogEntries = auditLogReader.resilientNext((int) batchSize);
 
@@ -446,15 +444,17 @@ public class ReplicationServer implements TReplicationService.Iface {
       LOG.debug(String.format("Persisted %d replication jobs", replicationJobsJobsSize));
       // Since the replication job was created and persisted, we can
       // advance the last persisted ID. Update every 10s to reduce db
-      //LOG.debug(
-      //String.format("Audit log entry id: %s converted to %s", entry.getId(), replicationJobs));
 
-      for (List<ReplicationJob> replicationJobs : replicationJobsJobs) {
+      for (int i = 0; i < auditLogEntries.size(); i++) {
+        List<ReplicationJob> replicationJobs = replicationJobsJobs.get(i);
+        AuditLogEntry auditLogEntry = auditLogEntries.get(i);
         // Add these jobs to the registry
         for (ReplicationJob job : replicationJobs) {
           jobRegistry.registerJob(job);
         }
 
+        LOG.debug(String.format(
+            "Audit log entry id: %s converted to %s", auditLogEntry.getId(), replicationJobs));
 
         for (ReplicationJob replicationJob : replicationJobs) {
           LOG.debug("Scheduling: " + replicationJob);
@@ -462,7 +462,6 @@ public class ReplicationServer implements TReplicationService.Iface {
           long tasksSubmittedForExecution =
               counters.getCounter(ReplicationCounters.Type.EXECUTION_SUBMITTED_TASKS);
 
-          // TODO: respect this especially above and move it up
           if (tasksSubmittedForExecution >= jobsToComplete) {
             LOG.warn(String.format("Not submitting %s for execution "
                 + " due to the limit for the number of " + "jobs to execute", replicationJob));
