@@ -32,6 +32,7 @@ public class ReplicationCounters {
    * @param type the type of counter
    */
   public synchronized void incrementCounter(Type type) {
+    //TODO: increment appropriate ocunter
     long currentCount = 0;
     if (counters.get(type) != null) {
       currentCount = counters.get(type);

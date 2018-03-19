@@ -104,6 +104,7 @@ public class ParallelJobExecutor {
    * has finished.
    */
   private void incrementSubmittedJobCount() {
+    //TODO: metric
     countLock.lock();
     try {
       submittedJobCount++;
@@ -113,6 +114,7 @@ public class ParallelJobExecutor {
   }
 
   private void incrementDoneJobCount() {
+    //TODO: metric
     countLock.lock();
     try {
       doneJobCount++;
@@ -130,6 +132,7 @@ public class ParallelJobExecutor {
    * @return the number of jobs that are not done
    */
   public long getNotDoneJobCount() {
+    //TODO: metric
     countLock.lock();
     try {
       return submittedJobCount - doneJobCount;

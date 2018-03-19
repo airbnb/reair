@@ -401,6 +401,7 @@ public class ReplicationServer implements TReplicationService.Iface {
         return;
       }
 
+      // TODO: jobs in memory
       // Wait if there are too many jobs
       if (jobExecutor.getNotDoneJobCount() >= maxJobsInMemory) {
         LOG.debug(String.format(
@@ -430,6 +431,7 @@ public class ReplicationServer implements TReplicationService.Iface {
         ReplicationUtils.sleep(pollWaitTimeMs);
         continue;
       }
+      // TODO: log new audit log entry
 
       // Convert the audit log entry into a replication job, which has
       // elements persisted to the DB

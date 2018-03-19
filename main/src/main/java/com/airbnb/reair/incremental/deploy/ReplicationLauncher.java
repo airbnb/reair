@@ -16,6 +16,8 @@ import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
 import com.airbnb.reair.incremental.filter.ReplicationFilter;
 import com.airbnb.reair.incremental.thrift.TReplicationService;
 
+import com.timgroup.statsd.NonBlockingStatsDClient;
+import com.timgroup.statsd.StatsDClient;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -42,7 +44,7 @@ public class ReplicationLauncher {
       ReplicationLauncher.class);
 
   /**
-   * Launches the replication sever process using the passed in configuration.
+   * Launches the replication server process using the passed in configuration.
    *
    * @param conf configuration object
    * @param startAfterAuditLogId instruct the server to start replicating entries after this ID
@@ -58,6 +60,8 @@ public class ReplicationLauncher {
       boolean resetState)
     throws AuditLogEntryException, ConfigurationException, IOException, StateUpdateException,
       SQLException {
+    // Create statsd registry
+    StatsDClient client = new NonBlockingStatsDClient("my.prefix", "statsd-host", 8125);
 
 
     // Create the audit log reader
