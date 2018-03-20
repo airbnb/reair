@@ -174,9 +174,10 @@ public class PersistedJobInfoStore {
       Map<String, String> extras =
           extrasJson.map(ReplicationUtils::convertToMap).orElse(new HashMap<>());
 
-      PersistedJobInfo persistedJobInfo = new PersistedJobInfo(id, createTime, operation, status,
-          srcPath, srcClusterName, srcDbName, srcTableName, srcPartitionNames, srcObjectTldt,
-          renameToDbName, renameToTableName, renameToPartitionName, renameToPath, extras);
+      PersistedJobInfo persistedJobInfo = new PersistedJobInfo(Optional.of(id), createTime,
+          operation, status, srcPath, srcClusterName, srcDbName, srcTableName, srcPartitionNames,
+          srcObjectTldt, renameToDbName, renameToTableName, renameToPartitionName, renameToPath,
+          extras);
       persistedJobInfos.add(persistedJobInfo);
     }
     return persistedJobInfos;
@@ -313,9 +314,10 @@ public class PersistedJobInfoStore {
         extras = ReplicationUtils.convertToMap(rs.getString("extras"));
       }
 
-      PersistedJobInfo persistedJobInfo = new PersistedJobInfo(id, createTime, operation, status,
-          srcPath, srcClusterName, srcDbName, srcTableName, srcPartitionNames, srcObjectTldt,
-          renameToDbName, renameToTableName, renameToPartitionName, renameToPath, extras);
+      PersistedJobInfo persistedJobInfo = new PersistedJobInfo(Optional.of(id), createTime,
+          operation, status, srcPath, srcClusterName, srcDbName, srcTableName, srcPartitionNames,
+          srcObjectTldt, renameToDbName, renameToTableName, renameToPartitionName, renameToPath,
+          extras);
       return persistedJobInfo;
     }
     return null;

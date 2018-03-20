@@ -9,8 +9,7 @@ import com.airbnb.reair.incremental.configuration.Cluster;
 import com.airbnb.reair.incremental.configuration.DestinationObjectFactory;
 import com.airbnb.reair.incremental.configuration.ObjectConflictHandler;
 import com.airbnb.reair.incremental.db.PersistedJobInfo;
-import com.airbnb.reair.incremental.db.PersistedJobInfoCreator;
-import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
+import com.airbnb.reair.incremental.db.PersistedJobInfoFactory;
 import com.airbnb.reair.incremental.filter.ReplicationFilter;
 import com.airbnb.reair.incremental.primitives.CopyPartitionTask;
 import com.airbnb.reair.incremental.primitives.CopyPartitionedTableTask;
@@ -23,7 +22,6 @@ import com.airbnb.reair.incremental.primitives.RenameTableTask;
 import com.airbnb.reair.incremental.primitives.ReplicationTask;
 import com.airbnb.reair.multiprocessing.ParallelJobExecutor;
 
-import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -31,8 +29,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,10 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
 
 /**
  * Creates replication jobs and persists initial information into the DB.
@@ -63,7 +55,7 @@ public class ReplicationJobFactory {
   private ObjectConflictHandler objectConflictHandler;
   private ParallelJobExecutor copyPartitionJobExecutor;
   private DirectoryCopier directoryCopier;
-  private PersistedJobInfoCreator persistedJobInfoCreator;
+  private PersistedJobInfoFactory persistedJobInfoFactory;
 
   /**
    * Constructor.
@@ -71,7 +63,7 @@ public class ReplicationJobFactory {
    * @param conf configuration
    * @param srcCluster source cluster
    * @param destCluster destination cluster
-   * @param persistedJobInfoCreator PersistedJobInfoCreator
+   * @param persistedJobInfoFactory PersistedJobInfoFactory
    * @param destinationObjectFactory factory for creating objects for the destination cluster
    * @param onStateChangeHandler handler for when a job's state changes
    * @param objectConflictHandler handler for addressing conflicting tables/partitions on the
@@ -83,7 +75,7 @@ public class ReplicationJobFactory {
       Configuration conf,
       Cluster srcCluster,
       Cluster destCluster,
-      PersistedJobInfoCreator persistedJobInfoCreator,
+      PersistedJobInfoFactory persistedJobInfoFactory,
       DestinationObjectFactory destinationObjectFactory,
       OnStateChangeHandler onStateChangeHandler,
       ObjectConflictHandler objectConflictHandler,
@@ -97,7 +89,7 @@ public class ReplicationJobFactory {
     this.objectConflictHandler = objectConflictHandler;
     this.copyPartitionJobExecutor = copyPartitionJobExecutor;
     this.directoryCopier = directoryCopier;
-    this.persistedJobInfoCreator = persistedJobInfoCreator;
+    this.persistedJobInfoFactory = persistedJobInfoFactory;
   }
 
   /**
@@ -110,7 +102,7 @@ public class ReplicationJobFactory {
    *
    * @throws StateUpdateException if there's an error writing to the DB
    */
-  public CompletableFuture<ReplicationJob> createJobForCopyTable(
+  public ReplicationJob createJobForCopyTable(
       long auditLogId,
       long auditLogEntryCreateTime,
       Table table) throws StateUpdateException {
@@ -123,7 +115,7 @@ public class ReplicationJobFactory {
     extras.put(PersistedJobInfo.AUDIT_LOG_ENTRY_CREATE_TIME_KEY,
         Long.toString(auditLogEntryCreateTime));
 
-    CompletableFuture<PersistedJobInfo> persistedJobInfo = persistedJobInfoCreator.createLater(
+    PersistedJobInfo persistedJobInfo = persistedJobInfoFactory.createDeferred(
         replicationOperation,
         ReplicationStatus.PENDING, ReplicationUtils.getLocation(table), srcCluster.getName(),
         new HiveObjectSpec(table), Collections.emptyList(), ReplicationUtils.getTldt(table),
@@ -134,17 +126,17 @@ public class ReplicationJobFactory {
 
     switch (replicationOperation) {
       case COPY_UNPARTITIONED_TABLE:
-        return persistedJobInfo.thenApply((info) -> new ReplicationJob(
+        return new ReplicationJob(
             conf,
             new CopyUnpartitionedTableTask(conf, destinationObjectFactory, objectConflictHandler,
                 srcCluster, destCluster, spec, tableLocation, directoryCopier, true),
-            onStateChangeHandler, info));
+            onStateChangeHandler, persistedJobInfo);
       case COPY_PARTITIONED_TABLE:
-        return persistedJobInfo.thenApply((info) -> new ReplicationJob(
+        return new ReplicationJob(
             conf,
             new CopyPartitionedTableTask(conf, destinationObjectFactory, objectConflictHandler,
                 srcCluster, destCluster, spec, tableLocation),
-            onStateChangeHandler, info));
+            onStateChangeHandler, persistedJobInfo);
       default:
         throw new RuntimeException("Unhandled operation " + replicationOperation);
     }
@@ -160,7 +152,7 @@ public class ReplicationJobFactory {
    *
    * @throws StateUpdateException if there's an error writing to the DB
    */
-  public CompletableFuture<ReplicationJob> createJobForCopyPartition(
+  public ReplicationJob createJobForCopyPartition(
       long auditLogId,
       long auditLogEntryCreateTime,
       HiveObjectSpec spec) throws StateUpdateException {
@@ -174,8 +166,8 @@ public class ReplicationJobFactory {
     partitionNames.add(spec.getPartitionName());
     ReplicationOperation replicationOperation = ReplicationOperation.COPY_PARTITION;
 
-    CompletableFuture<PersistedJobInfo> persistedJobInfo =
-        persistedJobInfoCreator.createLater(
+    PersistedJobInfo persistedJobInfo =
+        persistedJobInfoFactory.createDeferred(
             replicationOperation, ReplicationStatus.PENDING,
             Optional.empty(), srcCluster.getName(), spec, partitionNames,
             Optional.empty(), Optional.empty(), Optional.empty(), extras);
@@ -184,8 +176,7 @@ public class ReplicationJobFactory {
         objectConflictHandler, srcCluster, destCluster, spec, Optional.<Path>empty(),
         Optional.<Path>empty(), directoryCopier, true);
 
-    return persistedJobInfo.thenApply(
-        (jobInfo) -> new ReplicationJob(conf, replicationTask, onStateChangeHandler, jobInfo));
+    return new ReplicationJob(conf, replicationTask, onStateChangeHandler, persistedJobInfo);
   }
 
   /**
@@ -198,7 +189,7 @@ public class ReplicationJobFactory {
    *
    * @throws StateUpdateException if there's an error writing to the DB
    */
-  public CompletableFuture<ReplicationJob> createJobForCopyPartition(
+  public ReplicationJob createJobForCopyPartition(
       long auditLogId,
       long auditLogEntryCreateTime,
       NamedPartition namedPartition) throws StateUpdateException {
@@ -215,8 +206,8 @@ public class ReplicationJobFactory {
 
     Partition partition = namedPartition.getPartition();
     HiveObjectSpec spec = new HiveObjectSpec(namedPartition);
-    CompletableFuture<PersistedJobInfo> persistedJobInfo =
-        persistedJobInfoCreator.createLater(
+    PersistedJobInfo persistedJobInfo =
+        persistedJobInfoFactory.createDeferred(
             replicationOperation, ReplicationStatus.PENDING,
             ReplicationUtils.getLocation(partition), srcCluster.getName(), spec, partitionNames,
             ReplicationUtils.getTldt(partition), Optional.empty(), Optional.empty(), extras);
@@ -225,8 +216,7 @@ public class ReplicationJobFactory {
         conf, destinationObjectFactory, objectConflictHandler, srcCluster, destCluster, spec,
         ReplicationUtils.getLocation(partition), Optional.empty(), directoryCopier, true);
 
-    return persistedJobInfo.thenApply(
-        (jobInfo) -> new ReplicationJob(conf, replicationTask, onStateChangeHandler, jobInfo));
+    return new ReplicationJob(conf, replicationTask, onStateChangeHandler, persistedJobInfo);
   }
 
   /**
@@ -239,7 +229,7 @@ public class ReplicationJobFactory {
    *
    * @throws StateUpdateException if there's an error writing to the DB
    */
-  public CompletableFuture<ReplicationJob> createJobForCopyDynamicPartitions(
+  public ReplicationJob createJobForCopyDynamicPartitions(
       long auditLogId,
       long auditLogEntryCreateTime,
       List<NamedPartition> namedPartitions) throws StateUpdateException {
@@ -262,8 +252,8 @@ public class ReplicationJobFactory {
     extras.put(PersistedJobInfo.AUDIT_LOG_ENTRY_CREATE_TIME_KEY,
         Long.toString(auditLogEntryCreateTime));
 
-    CompletableFuture<PersistedJobInfo> persistedJobInfo =
-        persistedJobInfoCreator.createLater(
+    PersistedJobInfo persistedJobInfo =
+        persistedJobInfoFactory.createDeferred(
             replicationOperation, ReplicationStatus.PENDING, commonLocation,
             srcCluster.getName(), tableSpec, partitionNames,
             Optional.empty(), Optional.empty(), Optional.empty(), extras);
@@ -272,8 +262,7 @@ public class ReplicationJobFactory {
         objectConflictHandler, srcCluster, destCluster, tableSpec, partitionNames, commonLocation,
         copyPartitionJobExecutor, directoryCopier);
 
-    return persistedJobInfo.thenApply(
-        (jobInfo) -> new ReplicationJob(conf, replicationTask, onStateChangeHandler, jobInfo));
+    return new ReplicationJob(conf, replicationTask, onStateChangeHandler, persistedJobInfo);
   }
 
   /**
@@ -303,7 +292,7 @@ public class ReplicationJobFactory {
    *
    * @throws StateUpdateException if there's an error writing to the DB
    */
-  public CompletableFuture<ReplicationJob> createJobForDropTable(
+  public ReplicationJob createJobForDropTable(
       long auditLogId,
       long auditLogEntryCreateTime,
       Table table) throws StateUpdateException {
@@ -316,14 +305,14 @@ public class ReplicationJobFactory {
 
     HiveObjectSpec tableSpec = new HiveObjectSpec(table);
 
-    CompletableFuture<PersistedJobInfo> persistedJobInfo =
-        persistedJobInfoCreator.createLater(
+    PersistedJobInfo persistedJobInfo =
+        persistedJobInfoFactory.createDeferred(
             replicationOperation, ReplicationStatus.PENDING,
             ReplicationUtils.getLocation(table), srcCluster.getName(), tableSpec,
             Collections.emptyList(), ReplicationUtils.getTldt(table), Optional.empty(),
             Optional.empty(), extras);
 
-    return persistedJobInfo.thenApply((jobInfo) -> new ReplicationJob(
+    return new ReplicationJob(
         conf,
         new DropTableTask(
             srcCluster,
@@ -331,7 +320,7 @@ public class ReplicationJobFactory {
             tableSpec,
             ReplicationUtils.getTldt(table)),
         onStateChangeHandler,
-        jobInfo));
+        persistedJobInfo);
   }
 
   /**
@@ -344,7 +333,7 @@ public class ReplicationJobFactory {
    *
    * @throws StateUpdateException if there is an error writing to the DB
    */
-  public CompletableFuture<ReplicationJob> createJobForDropPartition(
+  public ReplicationJob createJobForDropPartition(
       long auditLogId,
       long auditLogEntryCreateTime,
       NamedPartition namedPartition) throws StateUpdateException {
@@ -358,14 +347,14 @@ public class ReplicationJobFactory {
     List<String> partitionNames = new ArrayList<>();
     partitionNames.add(namedPartition.getName());
     Optional<String> partitionTldt = ReplicationUtils.getTldt(namedPartition.getPartition());
-    CompletableFuture<PersistedJobInfo> persistedJobInfo =
-        persistedJobInfoCreator.createLater(
+    PersistedJobInfo persistedJobInfo =
+        persistedJobInfoFactory.createDeferred(
             replicationOperation, ReplicationStatus.PENDING,
             ReplicationUtils.getLocation(namedPartition.getPartition()),
             srcCluster.getName(), partitionSpec.getTableSpec(), partitionNames, partitionTldt,
             Optional.empty(), Optional.empty(), extras);
 
-    return persistedJobInfo.thenApply((jobInfo) -> new ReplicationJob(
+    return new ReplicationJob(
         conf,
         new DropPartitionTask(
             srcCluster,
@@ -373,7 +362,7 @@ public class ReplicationJobFactory {
             partitionSpec,
             partitionTldt),
         onStateChangeHandler,
-        jobInfo));
+        persistedJobInfo);
   }
 
   /**
@@ -387,7 +376,7 @@ public class ReplicationJobFactory {
    *
    * @throws StateUpdateException if there's an error writing to the DB
    */
-  public CompletableFuture<ReplicationJob> createJobForRenameTable(
+  public ReplicationJob createJobForRenameTable(
       long auditLogId,
       long auditLogEntryCreateTime,
       Table renameFromTable,
@@ -404,14 +393,14 @@ public class ReplicationJobFactory {
     Optional<Path> renameFromPath = ReplicationUtils.getLocation(renameFromTable);
     Optional<Path> renameToPath = ReplicationUtils.getLocation(renameToTable);
 
-    CompletableFuture<PersistedJobInfo> persistedJobInfo =
-        persistedJobInfoCreator.createLater(
+    PersistedJobInfo persistedJobInfo =
+        persistedJobInfoFactory.createDeferred(
             replicationOperation, ReplicationStatus.PENDING, renameFromPath,
             srcCluster.getName(), renameFromTableSpec,
             new ArrayList<>(), ReplicationUtils.getTldt(renameFromTable),
             Optional.of(renameToTableSpec), renameToPath, extras);
 
-    return persistedJobInfo.thenApply((jobInfo) -> new ReplicationJob(
+    return new ReplicationJob(
         conf,
         new RenameTableTask(conf,
             srcCluster,
@@ -426,7 +415,7 @@ public class ReplicationJobFactory {
             copyPartitionJobExecutor,
             directoryCopier),
         onStateChangeHandler,
-        jobInfo));
+        persistedJobInfo);
   }
 
   /**
@@ -440,7 +429,7 @@ public class ReplicationJobFactory {
    *
    * @throws StateUpdateException if there's an error writing to the DB
    */
-  public CompletableFuture<ReplicationJob> createJobForRenamePartition(
+  public ReplicationJob createJobForRenamePartition(
       long auditLogId,
       long auditLogEntryCreateTime,
       NamedPartition renameFromPartition,
@@ -457,14 +446,14 @@ public class ReplicationJobFactory {
     Optional renameFromPath = ReplicationUtils.getLocation(renameFromPartition.getPartition());
     Optional renameToPath = ReplicationUtils.getLocation(renameToPartition.getPartition());
 
-    CompletableFuture<PersistedJobInfo> persistedJobInfo =
-        persistedJobInfoCreator.createLater(
+    PersistedJobInfo persistedJobInfo =
+        persistedJobInfoFactory.createDeferred(
             replicationOperation, ReplicationStatus.PENDING, renameFromPath,
             srcCluster.getName(), renameFromPartitionSpec,
             new ArrayList<>(), ReplicationUtils.getTldt(renameFromPartition.getPartition()),
             Optional.of(renameToPartitionSpec), renameToPath, extras);
 
-    return persistedJobInfo.thenApply((jobInfo) -> new ReplicationJob(
+    return new ReplicationJob(
         conf,
         new RenamePartitionTask(
             conf,
@@ -478,7 +467,7 @@ public class ReplicationJobFactory {
             renameToPath,
             ReplicationUtils.getTldt(renameFromPartition.getPartition()), directoryCopier),
         onStateChangeHandler,
-        jobInfo));
+        persistedJobInfo);
   }
 
   private enum OperationType {
@@ -499,21 +488,13 @@ public class ReplicationJobFactory {
       List<AuditLogEntry> auditLogEntries,
       List<ReplicationFilter> replicationFilters) throws StateUpdateException {
     try {
-      List<List<CompletableFuture<ReplicationJob>>> lazyReplicationJobs = new ArrayList<>();
       List<List<ReplicationJob>> replicationJobs = new ArrayList<>();
       for (AuditLogEntry auditLogEntry : auditLogEntries) {
-        lazyReplicationJobs.add(createReplicationJobsSingle(auditLogEntry, replicationFilters));
+        replicationJobs.add(createReplicationJobsSingle(auditLogEntry, replicationFilters));
       }
-      persistedJobInfoCreator.completeFutures();
-      for (List<CompletableFuture<ReplicationJob>> futures : lazyReplicationJobs) {
-        List<ReplicationJob> jobs = new ArrayList<>();
-        for (CompletableFuture<ReplicationJob> lazyJob: futures) {
-          jobs.add(lazyJob.get());
-        }
-        replicationJobs.add(jobs);
-      }
+      persistedJobInfoFactory.persist();
       return replicationJobs;
-    } catch (SQLException | InterruptedException | ExecutionException e) {
+    } catch (SQLException e) {
       throw new StateUpdateException(e);
     }
   }
@@ -525,10 +506,10 @@ public class ReplicationJobFactory {
 
    * @throws StateUpdateException if there's an error writing to the DB
    */
-  private List<CompletableFuture<ReplicationJob>> createReplicationJobsSingle(
+  private List<ReplicationJob> createReplicationJobsSingle(
       AuditLogEntry auditLogEntry,
       List<ReplicationFilter> replicationFilters) throws StateUpdateException {
-    List<CompletableFuture<ReplicationJob>> replicationJobs = new ArrayList<>();
+    List<ReplicationJob> replicationJobs = new ArrayList<>();
 
     for (ReplicationFilter replicationFilter : replicationFilters) {
       if (!replicationFilter.accept(auditLogEntry)) {
@@ -578,7 +559,7 @@ public class ReplicationJobFactory {
             return replicationJobs;
           }
         }
-        CompletableFuture<ReplicationJob> job = createJobForCopyPartition(auditLogEntry.getId(),
+        ReplicationJob job = createJobForCopyPartition(auditLogEntry.getId(),
             auditLogEntry.getCreateTime().getTime(), exchangeToSpec);
 
         replicationJobs.add(job);

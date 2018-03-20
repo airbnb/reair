@@ -10,7 +10,7 @@ import com.airbnb.reair.incremental.ReplicationOperation;
 import com.airbnb.reair.incremental.ReplicationStatus;
 import com.airbnb.reair.incremental.StateUpdateException;
 import com.airbnb.reair.incremental.db.PersistedJobInfo;
-import com.airbnb.reair.incremental.db.PersistedJobInfoCreator;
+import com.airbnb.reair.incremental.db.PersistedJobInfoFactory;
 import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
 import com.airbnb.reair.utils.ReplicationTestUtils;
 
@@ -78,8 +78,8 @@ public class PersistedJobInfoStoreTest {
     statement.execute(PersistedJobInfoStore.getCreateTableSql("replication_jobs"));
     final PersistedJobInfoStore jobStore =
         new PersistedJobInfoStore(new Configuration(), dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
-    PersistedJobInfoCreator jobInfoCreator =
-        new PersistedJobInfoCreator(dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
+    PersistedJobInfoFactory jobInfoCreator =
+        new PersistedJobInfoFactory(dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
 
 
     // Test out creation
@@ -98,7 +98,7 @@ public class PersistedJobInfoStoreTest {
         Optional.of(new HiveObjectSpec("test_db", "renamed_table", "ds=1/hr=1")),
         Optional.of(new Path("file://tmp/a/b/c")),
         extras);
-    jobInfoCreator.completeFutures();
+    jobInfoCreator.persist();
     PersistedJobInfo testJob = testJobFuture.get();
 
     // Test out retrieval

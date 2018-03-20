@@ -17,6 +17,10 @@ import java.util.Optional;
  * Information about a replication job that gets persisted to a DB.
  */
 public class PersistedJobInfo {
+  public enum State {
+    PERSISTED,
+    PENDING
+  }
 
   private static final Log LOG = LogFactory.getLog(PersistedJobInfo.class);
 
@@ -48,13 +52,11 @@ public class PersistedJobInfo {
   // A flexible map to store some extra parameters
   private Map<String, String> extras;
 
+  private State state;
+
   public static final String AUDIT_LOG_ID_EXTRAS_KEY = "audit_log_id";
   public static final String AUDIT_LOG_ENTRY_CREATE_TIME_KEY = "audit_log_entry_create_time";
   public static final String BYTES_COPIED_KEY = "bytes_copied";
-
-  public PersistedJobInfo() {
-
-  }
 
   /**
    * Constructor for a persisted job info.
@@ -76,8 +78,8 @@ public class PersistedJobInfo {
    * @param renameToPath if renaming an object, the new object's new location
    * @param extras a key value map of any extra information that is not critical to replication
    */
-  public PersistedJobInfo(
-      Long id,
+  PersistedJobInfo(
+      Optional<Long> id,
       Long createTime,
       ReplicationOperation operation,
       ReplicationStatus status,
@@ -92,7 +94,13 @@ public class PersistedJobInfo {
       Optional<String> renameToPartition,
       Optional<Path> renameToPath,
       Map<String, String> extras) {
-    this.id = id;
+    if (id.isPresent()) {
+      this.id = id.get();
+      this.state = State.PERSISTED;
+    } else {
+      this.id = null;
+      this.state = State.PENDING;
+    }
     this.createTime = createTime;
     this.operation = operation;
     this.status = status;
@@ -119,8 +127,13 @@ public class PersistedJobInfo {
     }
   }
 
-  public void setId(Long id) {
+  void setPersisted(Long id) {
+    this.state = State.PERSISTED;
     this.id = id;
+  }
+
+  public State getState() {
+    return this.state;
   }
 
   public Long getId() {

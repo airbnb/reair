@@ -2,7 +2,6 @@ package com.airbnb.reair.incremental.db;
 
 import com.airbnb.reair.common.HiveObjectSpec;
 import com.airbnb.reair.db.DbConnectionFactory;
-import com.airbnb.reair.incremental.ReplicationJob;
 import com.airbnb.reair.incremental.ReplicationOperation;
 import com.airbnb.reair.incremental.ReplicationStatus;
 import com.airbnb.reair.incremental.ReplicationUtils;
@@ -26,11 +25,11 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public class PersistedJobInfoCreator {
-  private static final Log LOG = LogFactory.getLog(PersistedJobInfoCreator.class);
+public class PersistedJobInfoFactory {
+  private static final Log LOG = LogFactory.getLog(PersistedJobInfoFactory.class);
 
   private ArrayList<QueryParams> vars;
-  private ArrayList<CompletableFuture<Long>> futures;
+  private ArrayList<PersistedJobInfo> jobsToPersist;
   private DbConnectionFactory dbConnectionFactory;
   private String dbTableName;
 
@@ -38,21 +37,20 @@ public class PersistedJobInfoCreator {
 
   /**
    * Creates rows for PersistedJobInfo in batches. You can add to the batch
-   * with createLater, and finalize with completeFutures.
+   * with createLater, and finalize with persist.
    *
    * @param dbConnectionFactory DbConnectionFactory for state table
    * @param dbTableName Name of state table
    */
-  public PersistedJobInfoCreator(DbConnectionFactory dbConnectionFactory, String dbTableName) {
+  public PersistedJobInfoFactory(DbConnectionFactory dbConnectionFactory, String dbTableName) {
     vars = new ArrayList<>(BATCH_SIZE);
-    futures = new ArrayList<>(BATCH_SIZE);
+    jobsToPersist = new ArrayList<>(BATCH_SIZE);
     this.dbConnectionFactory = dbConnectionFactory;
     this.dbTableName = dbTableName;
   }
 
   /**
-   * Returns a CompletableFuture for PersistedJobInfo. The future is
-   * completed when completeFutures is called.
+   * Returns a PersistedJobInfo. It is persisted when persist is called.
    *
    * @param operation the hive operation
    * @param status the status to be used
@@ -67,7 +65,7 @@ public class PersistedJobInfoCreator {
    * @return A CompletableFuture of the PersistedJobInfo
    * @throws StateUpdateException when there is a SQL error
    */
-  public synchronized CompletableFuture<PersistedJobInfo> createLater(
+  public synchronized PersistedJobInfo createDeferred(
       ReplicationOperation operation,
       ReplicationStatus status,
       Optional<Path> srcPath,
@@ -93,31 +91,29 @@ public class PersistedJobInfoCreator {
           renameToPath,
           extras);
       vars.add(qp);
-      CompletableFuture<Long> longCompletableFuture = new CompletableFuture<>();
-      futures.add(longCompletableFuture);
-      Function<Long, PersistedJobInfo> creationFunction = (Long id) ->
-          new PersistedJobInfo(id, timestampMillisRounded, operation, status, srcPath,
+      PersistedJobInfo persistedJobInfo =
+          new PersistedJobInfo(Optional.empty(), timestampMillisRounded, operation, status, srcPath,
               srcClusterName, srcTableSpec.getDbName(), srcTableSpec.getTableName(),
               srcPartitionNames, srcTldt,
               renameToObject.map(HiveObjectSpec::getDbName),
               renameToObject.map(HiveObjectSpec::getTableName),
               renameToObject.map(HiveObjectSpec::getPartitionName),
               renameToPath, extras);
-      return longCompletableFuture.thenApply(creationFunction);
+      jobsToPersist.add(persistedJobInfo);
+      return persistedJobInfo;
     } catch (IOException e) {
       throw new StateUpdateException(e);
     }
   }
 
   /**
-   * Complete all existing futures in the buffer, creating
-   * a SQL entry for each.
+   * Persist jobs in the buffer in one query.
    *
    * @throws SQLException if there is a SQL issue
    */
-  public synchronized void completeFutures() throws SQLException {
-    LOG.debug(String.format("Creating %d lazy ReplicationJobs", futures.size()));
-    if (futures.size() == 0) {
+  public synchronized void persist() throws SQLException {
+    LOG.debug(String.format("Persisting %d PersistedJobInfos", jobsToPersist.size()));
+    if (jobsToPersist.size() == 0) {
       return;
     }
     String query = generateQuery();
@@ -143,13 +139,13 @@ public class PersistedJobInfoCreator {
       }
       ps.execute();
       ResultSet rs = ps.getGeneratedKeys();
-      for (CompletableFuture<Long> f : futures) {
+      for (PersistedJobInfo j : jobsToPersist) {
         rs.next();
-        f.complete(rs.getLong(1));
+        j.setPersisted(rs.getLong(1));
       }
     }
     vars.clear();
-    futures.clear();
+    jobsToPersist.clear();
   }
 
   private String generateQuery() {

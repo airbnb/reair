@@ -10,7 +10,7 @@ import com.airbnb.reair.db.StaticDbConnectionFactory;
 import com.airbnb.reair.incremental.ReplicationOperation;
 import com.airbnb.reair.incremental.ReplicationStatus;
 import com.airbnb.reair.incremental.db.PersistedJobInfo;
-import com.airbnb.reair.incremental.db.PersistedJobInfoCreator;
+import com.airbnb.reair.incremental.db.PersistedJobInfoFactory;
 import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
 import com.airbnb.reair.utils.ReplicationTestUtils;
 
@@ -64,7 +64,7 @@ public class PersistedJobInfoCreatorTest {
 
   @Test
   public void testCreateOne() throws Exception {
-    PersistedJobInfoCreator jobInfoCreator = new PersistedJobInfoCreator(
+    PersistedJobInfoFactory jobInfoCreator = new PersistedJobInfoFactory(
         dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
 
     HiveObjectSpec hiveObjectSpec = new HiveObjectSpec(
@@ -83,13 +83,13 @@ public class PersistedJobInfoCreatorTest {
           Optional.empty(),
           new HashMap<>());
     assertFalse(persistedJobInfoCompletableFuture.isDone());
-    jobInfoCreator.completeFutures();
+    jobInfoCreator.persist();
     persistedJobInfoCompletableFuture.get();
   }
 
   @Test
   public void testCreateManyWithMany() throws Exception {
-    PersistedJobInfoCreator jobInfoCreator = new PersistedJobInfoCreator(
+    PersistedJobInfoFactory jobInfoCreator = new PersistedJobInfoFactory(
         dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
 
     List<List<String>> expectedResults = new ArrayList<>();
@@ -127,7 +127,7 @@ public class PersistedJobInfoCreatorTest {
       }
       actualResults.add(subResults);
     }
-    jobInfoCreator.completeFutures();
+    jobInfoCreator.persist();
     for (int i = 0; i < expectedResults.size(); i++) {
       assertEquals(expectedResults.get(i).size(), actualResults.get(i).size());
       for (int j = 0; j < expectedResults.get(i).size(); j++) {
@@ -136,13 +136,13 @@ public class PersistedJobInfoCreatorTest {
             actualResults.get(i).get(j).get().getSrcClusterName());
       }
     }
-    jobInfoCreator.completeFutures();
+    jobInfoCreator.persist();
   }
 
   @Test
   public void testCreateNone() throws SQLException {
-    PersistedJobInfoCreator jobInfoCreator = new PersistedJobInfoCreator(
+    PersistedJobInfoFactory jobInfoCreator = new PersistedJobInfoFactory(
         dbConnectionFactory, MYSQL_TEST_TABLE_NAME);
-    jobInfoCreator.completeFutures();
+    jobInfoCreator.persist();
   }
 }

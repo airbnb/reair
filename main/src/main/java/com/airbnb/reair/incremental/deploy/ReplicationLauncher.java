@@ -4,7 +4,6 @@ import com.airbnb.reair.db.DbConnectionFactory;
 import com.airbnb.reair.db.DbConnectionWatchdog;
 import com.airbnb.reair.db.DbKeyValueStore;
 import com.airbnb.reair.db.StaticDbConnectionFactory;
-import com.airbnb.reair.incremental.DirectoryCopier;
 import com.airbnb.reair.incremental.ReplicationServer;
 import com.airbnb.reair.incremental.StateUpdateException;
 import com.airbnb.reair.incremental.auditlog.AuditLogEntryException;
@@ -13,7 +12,7 @@ import com.airbnb.reair.incremental.configuration.Cluster;
 import com.airbnb.reair.incremental.configuration.ClusterFactory;
 import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.configuration.ConfiguredClusterFactory;
-import com.airbnb.reair.incremental.db.PersistedJobInfoCreator;
+import com.airbnb.reair.incremental.db.PersistedJobInfoFactory;
 import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
 import com.airbnb.reair.incremental.filter.ReplicationFilter;
 import com.airbnb.reair.incremental.thrift.TReplicationService;
@@ -118,8 +117,8 @@ public class ReplicationLauncher {
             conf,
             stateConnectionFactory,
             stateTableName);
-    final PersistedJobInfoCreator persistedJobInfoCreator =
-        new PersistedJobInfoCreator(
+    final PersistedJobInfoFactory persistedJobInfoFactory =
+        new PersistedJobInfoFactory(
             stateConnectionFactory,
             stateTableName);
 
@@ -181,7 +180,7 @@ public class ReplicationLauncher {
         auditLogReader,
         dbKeyValueStore,
         persistedJobInfoStore,
-        persistedJobInfoCreator,
+        persistedJobInfoFactory,
         replicationFilters,
         clusterFactory.getDirectoryCopier(),
         numWorkers,

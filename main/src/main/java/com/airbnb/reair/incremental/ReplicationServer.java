@@ -1,7 +1,6 @@
 package com.airbnb.reair.incremental;
 
 import com.airbnb.reair.common.HiveObjectSpec;
-import com.airbnb.reair.db.DbConnectionFactory;
 import com.airbnb.reair.db.DbKeyValueStore;
 import com.airbnb.reair.incremental.auditlog.AuditLogEntry;
 import com.airbnb.reair.incremental.auditlog.AuditLogEntryException;
@@ -10,7 +9,7 @@ import com.airbnb.reair.incremental.configuration.Cluster;
 import com.airbnb.reair.incremental.configuration.DestinationObjectFactory;
 import com.airbnb.reair.incremental.configuration.ObjectConflictHandler;
 import com.airbnb.reair.incremental.db.PersistedJobInfo;
-import com.airbnb.reair.incremental.db.PersistedJobInfoCreator;
+import com.airbnb.reair.incremental.db.PersistedJobInfoFactory;
 import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
 import com.airbnb.reair.incremental.filter.ReplicationFilter;
 import com.airbnb.reair.incremental.primitives.CopyPartitionTask;
@@ -32,17 +31,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.thrift.TException;
 
 import java.io.IOException;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
-import java.util.function.Function;
 
 /**
  * Replication server that reads entries from the audit log and replicates objects / operations
@@ -166,7 +162,7 @@ public class ReplicationServer implements TReplicationService.Iface {
       AuditLogReader auditLogReader,
       DbKeyValueStore keyValueStore,
       final PersistedJobInfoStore jobInfoStore,
-      final PersistedJobInfoCreator persistedJobInfoCreator,
+      final PersistedJobInfoFactory persistedJobInfoFactory,
       List<ReplicationFilter> replicationFilters,
       DirectoryCopier directoryCopier,
       int numWorkers,
@@ -199,7 +195,7 @@ public class ReplicationServer implements TReplicationService.Iface {
         conf,
         srcCluster,
         destCluster,
-        persistedJobInfoCreator,
+        persistedJobInfoFactory,
         destinationObjectFactory,
         onStateChangeHandler,
         objectConflictHandler,
