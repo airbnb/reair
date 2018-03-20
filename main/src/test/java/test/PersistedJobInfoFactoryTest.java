@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public class PersistedJobInfoCreatorTest {
+public class PersistedJobInfoFactoryTest {
   private static EmbeddedMySqlDb embeddedMySqlDb;
   private static DbConnectionFactory dbConnectionFactory;
   private static final String MYSQL_TEST_DB_NAME = "replication_test";
@@ -70,8 +70,8 @@ public class PersistedJobInfoCreatorTest {
     HiveObjectSpec hiveObjectSpec = new HiveObjectSpec(
         "a","b");
     List<String> srcPartitionNames = new ArrayList<>();
-    CompletableFuture<PersistedJobInfo> persistedJobInfoCompletableFuture =
-        jobInfoCreator.createLater(
+    PersistedJobInfo persistedJobInfoCompletableFuture =
+        jobInfoCreator.createDeferred(
           ReplicationOperation.COPY_PARTITION,
           ReplicationStatus.PENDING,
           Optional.empty(),
@@ -82,9 +82,7 @@ public class PersistedJobInfoCreatorTest {
           Optional.empty(),
           Optional.empty(),
           new HashMap<>());
-    assertFalse(persistedJobInfoCompletableFuture.isDone());
     jobInfoCreator.persist();
-    persistedJobInfoCompletableFuture.get();
   }
 
   @Test
@@ -106,13 +104,13 @@ public class PersistedJobInfoCreatorTest {
 
     HiveObjectSpec hiveObjectSpec = new HiveObjectSpec("a", "b");
 
-    List<List<CompletableFuture<PersistedJobInfo>>> actualResults = new ArrayList<>();
+    List<List<PersistedJobInfo>> actualResults = new ArrayList<>();
 
     for (List<String> ll : expectedResults) {
-      List<CompletableFuture<PersistedJobInfo>> subResults = new ArrayList<>();
+      List<PersistedJobInfo> subResults = new ArrayList<>();
       for (String srcCluster : ll) {
-        CompletableFuture<PersistedJobInfo> persistedJobInfoCompletableFuture =
-            jobInfoCreator.createLater(
+        PersistedJobInfo persistedJobInfo =
+            jobInfoCreator.createDeferred(
                 ReplicationOperation.COPY_PARTITION,
                 ReplicationStatus.PENDING,
                 Optional.empty(),
@@ -123,7 +121,7 @@ public class PersistedJobInfoCreatorTest {
                 Optional.empty(),
                 Optional.empty(),
                 new HashMap<>());
-        subResults.add(persistedJobInfoCompletableFuture);
+        subResults.add(persistedJobInfo);
       }
       actualResults.add(subResults);
     }
@@ -133,7 +131,7 @@ public class PersistedJobInfoCreatorTest {
       for (int j = 0; j < expectedResults.get(i).size(); j++) {
         assertEquals(
             expectedResults.get(i).get(j),
-            actualResults.get(i).get(j).get().getSrcClusterName());
+            actualResults.get(i).get(j).getSrcClusterName());
       }
     }
     jobInfoCreator.persist();

@@ -87,7 +87,7 @@ public class PersistedJobInfoStoreTest {
     partitionNames.add("ds=1/hr=1");
     Map<String, String> extras = new HashMap<>();
     extras.put("foo", "bar");
-    CompletableFuture<PersistedJobInfo> testJobFuture = jobInfoCreator.createLater(
+    PersistedJobInfo testJob = jobInfoCreator.createDeferred(
         ReplicationOperation.COPY_UNPARTITIONED_TABLE,
         ReplicationStatus.PENDING,
         Optional.of(new Path("file:///tmp/test_table")),
@@ -99,7 +99,6 @@ public class PersistedJobInfoStoreTest {
         Optional.of(new Path("file://tmp/a/b/c")),
         extras);
     jobInfoCreator.persist();
-    PersistedJobInfo testJob = testJobFuture.get();
 
     // Test out retrieval
     Map<Long, PersistedJobInfo> idToJob = new HashMap<>();
