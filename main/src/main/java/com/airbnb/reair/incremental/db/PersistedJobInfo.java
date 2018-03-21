@@ -247,8 +247,8 @@ public class PersistedJobInfo {
       return false;
     }
     // either the Future is determined and the value is equal, or they are the same future
-    if (id != null ? !(id.equals(that.id) ||
-        (id.isDone() && id.getNow(null).equals(that.id.getNow(null)))) :
+    if (id != null ? !(id.equals(that.id)
+        || (id.isDone() && id.getNow(null).equals(that.id.getNow(null)))) :
         that.id != null) {
       return false;
     }
