@@ -12,7 +12,6 @@ import com.airbnb.reair.incremental.configuration.Cluster;
 import com.airbnb.reair.incremental.configuration.ClusterFactory;
 import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.configuration.ConfiguredClusterFactory;
-import com.airbnb.reair.incremental.db.PersistedJobInfoFactory;
 import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
 import com.airbnb.reair.incremental.filter.ReplicationFilter;
 import com.airbnb.reair.incremental.thrift.TReplicationService;
@@ -117,10 +116,6 @@ public class ReplicationLauncher {
             conf,
             stateConnectionFactory,
             stateTableName);
-    final PersistedJobInfoFactory persistedJobInfoFactory =
-        new PersistedJobInfoFactory(
-            stateConnectionFactory,
-            stateTableName);
 
     if (resetState) {
       LOG.info("Resetting state by aborting non-completed jobs");
@@ -180,7 +175,6 @@ public class ReplicationLauncher {
         auditLogReader,
         dbKeyValueStore,
         persistedJobInfoStore,
-        persistedJobInfoFactory,
         replicationFilters,
         clusterFactory.getDirectoryCopier(),
         numWorkers,

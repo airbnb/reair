@@ -9,7 +9,6 @@ import com.airbnb.reair.incremental.configuration.Cluster;
 import com.airbnb.reair.incremental.configuration.DestinationObjectFactory;
 import com.airbnb.reair.incremental.configuration.ObjectConflictHandler;
 import com.airbnb.reair.incremental.db.PersistedJobInfo;
-import com.airbnb.reair.incremental.db.PersistedJobInfoFactory;
 import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
 import com.airbnb.reair.incremental.filter.ReplicationFilter;
 import com.airbnb.reair.incremental.primitives.CopyPartitionTask;
@@ -162,7 +161,6 @@ public class ReplicationServer implements TReplicationService.Iface {
       AuditLogReader auditLogReader,
       DbKeyValueStore keyValueStore,
       final PersistedJobInfoStore jobInfoStore,
-      final PersistedJobInfoFactory persistedJobInfoFactory,
       List<ReplicationFilter> replicationFilters,
       DirectoryCopier directoryCopier,
       int numWorkers,
@@ -195,7 +193,7 @@ public class ReplicationServer implements TReplicationService.Iface {
         conf,
         srcCluster,
         destCluster,
-        persistedJobInfoFactory,
+        jobInfoStore,
         destinationObjectFactory,
         onStateChangeHandler,
         objectConflictHandler,
