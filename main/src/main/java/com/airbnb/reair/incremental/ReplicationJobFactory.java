@@ -9,7 +9,8 @@ import com.airbnb.reair.incremental.configuration.Cluster;
 import com.airbnb.reair.incremental.configuration.DestinationObjectFactory;
 import com.airbnb.reair.incremental.configuration.ObjectConflictHandler;
 import com.airbnb.reair.incremental.db.PersistedJobInfo;
-import com.airbnb.reair.incremental.db.PersistedJobInfoFactory;
+import com.airbnb.reair.incremental.db.PersistedJobInfo;
+import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
 import com.airbnb.reair.incremental.filter.ReplicationFilter;
 import com.airbnb.reair.incremental.primitives.CopyPartitionTask;
 import com.airbnb.reair.incremental.primitives.CopyPartitionedTableTask;
@@ -55,7 +56,7 @@ public class ReplicationJobFactory {
   private ObjectConflictHandler objectConflictHandler;
   private ParallelJobExecutor copyPartitionJobExecutor;
   private DirectoryCopier directoryCopier;
-  private PersistedJobInfoFactory persistedJobInfoFactory;
+  private PersistedJobInfoStore persistedJobInfoStore;
 
   /**
    * Constructor.
@@ -63,7 +64,7 @@ public class ReplicationJobFactory {
    * @param conf configuration
    * @param srcCluster source cluster
    * @param destCluster destination cluster
-   * @param persistedJobInfoFactory PersistedJobInfoFactory
+   * @param persistedJobInfoStore PersistedJobInfoStore
    * @param destinationObjectFactory factory for creating objects for the destination cluster
    * @param onStateChangeHandler handler for when a job's state changes
    * @param objectConflictHandler handler for addressing conflicting tables/partitions on the
@@ -75,7 +76,7 @@ public class ReplicationJobFactory {
       Configuration conf,
       Cluster srcCluster,
       Cluster destCluster,
-      PersistedJobInfoFactory persistedJobInfoFactory,
+      PersistedJobInfoStore persistedJobInfoStore,
       DestinationObjectFactory destinationObjectFactory,
       OnStateChangeHandler onStateChangeHandler,
       ObjectConflictHandler objectConflictHandler,
@@ -89,7 +90,7 @@ public class ReplicationJobFactory {
     this.objectConflictHandler = objectConflictHandler;
     this.copyPartitionJobExecutor = copyPartitionJobExecutor;
     this.directoryCopier = directoryCopier;
-    this.persistedJobInfoFactory = persistedJobInfoFactory;
+    this.persistedJobInfoStore = persistedJobInfoStore;
   }
 
   /**
@@ -115,7 +116,7 @@ public class ReplicationJobFactory {
     extras.put(PersistedJobInfo.AUDIT_LOG_ENTRY_CREATE_TIME_KEY,
         Long.toString(auditLogEntryCreateTime));
 
-    PersistedJobInfo persistedJobInfo = persistedJobInfoFactory.createDeferred(
+    PersistedJobInfo persistedJobInfo = PersistedJobInfo.createDeferred(
         replicationOperation,
         ReplicationStatus.PENDING, ReplicationUtils.getLocation(table), srcCluster.getName(),
         new HiveObjectSpec(table), Collections.emptyList(), ReplicationUtils.getTldt(table),
@@ -167,7 +168,7 @@ public class ReplicationJobFactory {
     ReplicationOperation replicationOperation = ReplicationOperation.COPY_PARTITION;
 
     PersistedJobInfo persistedJobInfo =
-        persistedJobInfoFactory.createDeferred(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING,
             Optional.empty(), srcCluster.getName(), spec, partitionNames,
             Optional.empty(), Optional.empty(), Optional.empty(), extras);
@@ -207,7 +208,7 @@ public class ReplicationJobFactory {
     Partition partition = namedPartition.getPartition();
     HiveObjectSpec spec = new HiveObjectSpec(namedPartition);
     PersistedJobInfo persistedJobInfo =
-        persistedJobInfoFactory.createDeferred(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING,
             ReplicationUtils.getLocation(partition), srcCluster.getName(), spec, partitionNames,
             ReplicationUtils.getTldt(partition), Optional.empty(), Optional.empty(), extras);
@@ -253,7 +254,7 @@ public class ReplicationJobFactory {
         Long.toString(auditLogEntryCreateTime));
 
     PersistedJobInfo persistedJobInfo =
-        persistedJobInfoFactory.createDeferred(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING, commonLocation,
             srcCluster.getName(), tableSpec, partitionNames,
             Optional.empty(), Optional.empty(), Optional.empty(), extras);
@@ -306,7 +307,7 @@ public class ReplicationJobFactory {
     HiveObjectSpec tableSpec = new HiveObjectSpec(table);
 
     PersistedJobInfo persistedJobInfo =
-        persistedJobInfoFactory.createDeferred(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING,
             ReplicationUtils.getLocation(table), srcCluster.getName(), tableSpec,
             Collections.emptyList(), ReplicationUtils.getTldt(table), Optional.empty(),
@@ -348,7 +349,7 @@ public class ReplicationJobFactory {
     partitionNames.add(namedPartition.getName());
     Optional<String> partitionTldt = ReplicationUtils.getTldt(namedPartition.getPartition());
     PersistedJobInfo persistedJobInfo =
-        persistedJobInfoFactory.createDeferred(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING,
             ReplicationUtils.getLocation(namedPartition.getPartition()),
             srcCluster.getName(), partitionSpec.getTableSpec(), partitionNames, partitionTldt,
@@ -394,7 +395,7 @@ public class ReplicationJobFactory {
     Optional<Path> renameToPath = ReplicationUtils.getLocation(renameToTable);
 
     PersistedJobInfo persistedJobInfo =
-        persistedJobInfoFactory.createDeferred(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING, renameFromPath,
             srcCluster.getName(), renameFromTableSpec,
             new ArrayList<>(), ReplicationUtils.getTldt(renameFromTable),
@@ -447,7 +448,7 @@ public class ReplicationJobFactory {
     Optional renameToPath = ReplicationUtils.getLocation(renameToPartition.getPartition());
 
     PersistedJobInfo persistedJobInfo =
-        persistedJobInfoFactory.createDeferred(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING, renameFromPath,
             srcCluster.getName(), renameFromPartitionSpec,
             new ArrayList<>(), ReplicationUtils.getTldt(renameFromPartition.getPartition()),
@@ -487,16 +488,18 @@ public class ReplicationJobFactory {
   public List<List<ReplicationJob>> createReplicationJobs(
       List<AuditLogEntry> auditLogEntries,
       List<ReplicationFilter> replicationFilters) throws StateUpdateException {
-    try {
-      List<List<ReplicationJob>> replicationJobs = new ArrayList<>();
-      for (AuditLogEntry auditLogEntry : auditLogEntries) {
-        replicationJobs.add(createReplicationJobsSingle(auditLogEntry, replicationFilters));
+    List<List<ReplicationJob>> replicationJobs = new ArrayList<>();
+    List<PersistedJobInfo> toPersist = new ArrayList<>();
+    for (AuditLogEntry auditLogEntry : auditLogEntries) {
+      List<ReplicationJob> replicationJobs1 =
+          createReplicationJobsSingle(auditLogEntry, replicationFilters);
+      replicationJobs.add(replicationJobs1);
+      for (ReplicationJob replicationJob: replicationJobs1) {
+        toPersist.add(replicationJob.getPersistedJobInfo());
       }
-      persistedJobInfoFactory.persist();
-      return replicationJobs;
-    } catch (SQLException e) {
-      throw new StateUpdateException(e);
     }
+    persistedJobInfoStore.batchPersistNew(toPersist);
+    return replicationJobs;
   }
   /**
    * Converts the audit log entry into a set of replication jobs that have the persisted elements

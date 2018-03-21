@@ -278,6 +278,81 @@ public class PersistedJobInfoStore {
     }
   }
 
+  private synchronized void batchPersistNewImpl(List<PersistedJobInfo> jobs)
+      throws IOException, SQLException, StateUpdateException {
+    LOG.debug(String.format("Persisting %d PersistedJobInfos", jobs.size()));
+    if (jobs.size() == 0) {
+      return;
+    }
+    for (PersistedJobInfo job : jobs) {
+      if (job.getState() != PersistedJobInfo.State.PENDING) {
+        throw new StateUpdateException(
+            "Trying to persist a PersistedJobInfo not in the PENDING state is not allowed");
+      }
+    }
+    String query = generateQuery(jobs.size());
+    Connection connection = dbConnectionFactory.getConnection();
+    try (PreparedStatement ps =
+             connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+      int queryParamIndex = 1;
+      for (PersistedJobInfo job: jobs) {
+        ps.setTimestamp(queryParamIndex++, new Timestamp(job.getCreateTime()));
+        ps.setString(queryParamIndex++, job.getOperation().toString());
+        ps.setString(queryParamIndex++, job.getStatus().toString());
+        ps.setString(queryParamIndex++, job.getSrcPath().map(Path::toString).orElse(null));
+        ps.setString(queryParamIndex++, job.getSrcClusterName());
+        ps.setString(queryParamIndex++, job.getSrcDbName());
+        ps.setString(queryParamIndex++, job.getSrcTableName());
+        ps.setString(queryParamIndex++, ReplicationUtils.convertToJson(job.getSrcPartitionNames()));
+        ps.setString(queryParamIndex++, job.getSrcObjectTldt().orElse(null));
+        ps.setString(queryParamIndex++, job.getRenameToDb().orElse(null));
+        ps.setString(queryParamIndex++, job.getRenameToTable().orElse(null));
+        ps.setString(queryParamIndex++, job.getRenameToPartition().orElse(null));
+        ps.setString(queryParamIndex++, job.getRenameToPath().map(Path::toString).orElse(null));
+        ps.setString(queryParamIndex++, ReplicationUtils.convertToJson(job.getExtras()));
+      }
+      ps.execute();
+      ResultSet rs = ps.getGeneratedKeys();
+      for (PersistedJobInfo j : jobs) {
+        rs.next();
+        j.setPersisted(rs.getLong(1));
+      }
+    }
+  }
+
+  /**
+   * Persists PENDING PersistedJobInfos to the DB.
+   * @param jobs a list of PersistedJobInfos in the PENDING state
+   * @throws StateUpdateException if there is a SQLException or any Infos are not PENDING
+   */
+  public synchronized void batchPersistNew(List<PersistedJobInfo> jobs)
+      throws StateUpdateException {
+    try {
+      retryingTaskRunner.runWithRetries(() -> batchPersistNewImpl(jobs));
+    } catch (IOException | SQLException e) {
+      throw new StateUpdateException(e);
+    } catch (StateUpdateException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private String generateQuery(int len) {
+    String valuesStr = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    StringBuffer sb = new StringBuffer();
+    sb.append(
+        "INSERT INTO " + dbTableName + " (create_time, operation, status, src_path, "
+            + "src_cluster, src_db, src_table, src_partitions, src_tldt, rename_to_db, "
+            + "rename_to_table, rename_to_partition, rename_to_path, extras) VALUES ");
+    for (int i = 1; i < len; i++) {
+      sb.append(valuesStr);
+      sb.append(" , ");
+    }
+    sb.append(valuesStr);
+    return sb.toString();
+  }
+
   private synchronized PersistedJobInfo getJob(long id) throws SQLException {
     String query = "SELECT id, create_time, operation, status, src_path, " + "src_cluster, src_db, "
         + "src_table, src_partitions, src_tldt, "

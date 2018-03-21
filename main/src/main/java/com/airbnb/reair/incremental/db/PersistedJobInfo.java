@@ -1,5 +1,6 @@
 package com.airbnb.reair.incremental.db;
 
+import com.airbnb.reair.common.HiveObjectSpec;
 import com.airbnb.reair.incremental.ReplicationOperation;
 import com.airbnb.reair.incremental.ReplicationStatus;
 
@@ -296,5 +297,42 @@ public class PersistedJobInfo {
     result = 31 * result + (renameToPath != null ? renameToPath.hashCode() : 0);
     result = 31 * result + (extras != null ? extras.hashCode() : 0);
     return result;
+  }
+
+  /**
+   * Creates a PersistedJobInfo with no ID.
+   * @param operation operation
+   * @param status status
+   * @param srcPath srcPath
+   * @param srcClusterName srcClusterName
+   * @param srcTableSpec srcTableSpec
+   * @param srcPartitionNames srcPartitionNames
+   * @param srcTldt srcTldt
+   * @param renameToObject renameToObject
+   * @param renameToPath renameToPath
+   * @param extras extras
+   * @return An unpersisted PersistedJobInfo
+   */
+  public static PersistedJobInfo createDeferred(
+      ReplicationOperation operation,
+      ReplicationStatus status,
+      Optional<Path> srcPath,
+      String srcClusterName,
+      HiveObjectSpec srcTableSpec,
+      List<String> srcPartitionNames,
+      Optional<String> srcTldt,
+      Optional<HiveObjectSpec> renameToObject,
+      Optional<Path> renameToPath,
+      Map<String, String> extras) {
+    long timestampMillisRounded = System.currentTimeMillis() / 1000L * 1000L;
+    PersistedJobInfo persistedJobInfo =
+        new PersistedJobInfo(Optional.empty(), timestampMillisRounded, operation, status, srcPath,
+            srcClusterName, srcTableSpec.getDbName(), srcTableSpec.getTableName(),
+            srcPartitionNames, srcTldt,
+            renameToObject.map(HiveObjectSpec::getDbName),
+            renameToObject.map(HiveObjectSpec::getTableName),
+            renameToObject.map(HiveObjectSpec::getPartitionName),
+            renameToPath, extras);
+    return persistedJobInfo;
   }
 }
