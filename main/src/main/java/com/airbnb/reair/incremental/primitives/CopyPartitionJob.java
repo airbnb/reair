@@ -46,7 +46,7 @@ public class CopyPartitionJob extends Job {
           case FAILED:
             return -1;
           default:
-            throw new RuntimeException("State not handled: " + runInfo.getRunStatus());
+            throw new RuntimeException("PersistState not handled: " + runInfo.getRunStatus());
         }
       } catch (HiveMetastoreException e) {
         LOG.error("Got an exception - will retry", e);

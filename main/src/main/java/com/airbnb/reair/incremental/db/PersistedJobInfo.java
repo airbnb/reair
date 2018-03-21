@@ -13,19 +13,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Information about a replication job that gets persisted to a DB.
  */
 public class PersistedJobInfo {
-  public enum State {
-    PERSISTED,
-    PENDING
+  public enum PersistState {
+    PERSISTED, // if job is created in DB
+    PENDING // job hasnt been created yet in DB and has no ID
   }
 
   private static final Log LOG = LogFactory.getLog(PersistedJobInfo.class);
 
-  private Long id;
+  private CompletableFuture<Long> id;
   private long createTime;
   private ReplicationOperation operation;
   private ReplicationStatus status;
@@ -53,7 +55,7 @@ public class PersistedJobInfo {
   // A flexible map to store some extra parameters
   private Map<String, String> extras;
 
-  private State state;
+  private PersistState persistState;
 
   public static final String AUDIT_LOG_ID_EXTRAS_KEY = "audit_log_id";
   public static final String AUDIT_LOG_ENTRY_CREATE_TIME_KEY = "audit_log_entry_create_time";
@@ -96,11 +98,11 @@ public class PersistedJobInfo {
       Optional<Path> renameToPath,
       Map<String, String> extras) {
     if (id.isPresent()) {
-      this.id = id.get();
-      this.state = State.PERSISTED;
+      this.id = CompletableFuture.completedFuture(id.get());
+      this.persistState = PersistState.PERSISTED;
     } else {
-      this.id = null;
-      this.state = State.PENDING;
+      this.id = new CompletableFuture<>();
+      this.persistState = PersistState.PENDING;
     }
     this.createTime = createTime;
     this.operation = operation;
@@ -129,16 +131,31 @@ public class PersistedJobInfo {
   }
 
   void setPersisted(Long id) {
-    this.state = State.PERSISTED;
-    this.id = id;
+    if (this.persistState == PersistState.PERSISTED) {
+      throw new RuntimeException("Cant persist twice");
+    }
+    this.persistState = PersistState.PERSISTED;
+    this.id.complete(id);
   }
 
-  public State getState() {
-    return this.state;
+  public PersistState getPersistState() {
+    return this.persistState;
   }
 
+  /**
+   * Returns the ID if it has been persisted. Should only be called if persisted.
+   * @return the id
+   */
   public Long getId() {
-    return id;
+    try {
+      if (this.id.isDone()) {
+        return this.id.get();
+      } else {
+        throw new RuntimeException("getId should not be called before persisted.");
+      }
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException("Impossible");
+    }
   }
 
   public ReplicationOperation getOperation() {
@@ -229,7 +246,10 @@ public class PersistedJobInfo {
     if (extras != null ? !extras.equals(that.extras) : that.extras != null) {
       return false;
     }
-    if (id != null ? !id.equals(that.id) : that.id != null) {
+    // either the Future is determined and the value is equal, or they are the same future
+    if (id != null ? !(id.equals(that.id) ||
+        (id.isDone() && id.getNow(null).equals(that.id.getNow(null)))) :
+        that.id != null) {
       return false;
     }
     if (operation != that.operation) {

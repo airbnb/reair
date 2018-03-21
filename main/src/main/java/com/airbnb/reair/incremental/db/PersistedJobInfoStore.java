@@ -3,9 +3,8 @@ package com.airbnb.reair.incremental.db;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
-import com.airbnb.reair.common.Container;
-import com.airbnb.reair.common.HiveObjectSpec;
 import com.airbnb.reair.db.DbConnectionFactory;
+import com.airbnb.reair.incremental.ReplicationJob;
 import com.airbnb.reair.incremental.ReplicationOperation;
 import com.airbnb.reair.incremental.ReplicationStatus;
 import com.airbnb.reair.incremental.ReplicationUtils;
@@ -284,12 +283,6 @@ public class PersistedJobInfoStore {
     if (jobs.size() == 0) {
       return;
     }
-    for (PersistedJobInfo job : jobs) {
-      if (job.getState() != PersistedJobInfo.State.PENDING) {
-        throw new StateUpdateException(
-            "Trying to persist a PersistedJobInfo not in the PENDING state is not allowed");
-      }
-    }
     String query = generateQuery(jobs.size());
     Connection connection = dbConnectionFactory.getConnection();
     try (PreparedStatement ps =
@@ -327,6 +320,11 @@ public class PersistedJobInfoStore {
    */
   public synchronized void batchPersistNew(List<PersistedJobInfo> jobs)
       throws StateUpdateException {
+    for (PersistedJobInfo job: jobs) {
+      if (job.getPersistState() == PersistedJobInfo.PersistState.PERSISTED) {
+        throw new StateUpdateException("Tried to persist already persisted PersistedJobInfo.");
+      }
+    }
     try {
       retryingTaskRunner.runWithRetries(() -> batchPersistNewImpl(jobs));
     } catch (IOException | SQLException e) {
