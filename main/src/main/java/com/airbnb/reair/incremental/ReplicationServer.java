@@ -48,6 +48,7 @@ public class ReplicationServer implements TReplicationService.Iface {
   private static final Log LOG = LogFactory.getLog(ReplicationServer.class);
 
   private static final long POLL_WAIT_TIME_MS = 10 * 1000;
+  // how many audit log entries to process at once
   private static final int BATCH_SIZE = 128;
 
   // If there is a need to wait to poll, wait this many ms

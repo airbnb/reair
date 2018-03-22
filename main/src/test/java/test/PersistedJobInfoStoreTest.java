@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 public class PersistedJobInfoStoreTest {
   private static final Log LOG = LogFactory.getLog(PersistedJobInfoStoreTest.class);
@@ -85,7 +84,7 @@ public class PersistedJobInfoStoreTest {
     partitionNames.add("ds=1/hr=1");
     Map<String, String> extras = new HashMap<>();
     extras.put("foo", "bar");
-    PersistedJobInfo testJob = PersistedJobInfo.createDeferred(
+    PersistedJobInfo testJob = PersistedJobInfo.createMany(
         ReplicationOperation.COPY_UNPARTITIONED_TABLE,
         ReplicationStatus.PENDING,
         Optional.of(new Path("file:///tmp/test_table")),
@@ -128,7 +127,7 @@ public class PersistedJobInfoStoreTest {
         "a","b");
     List<String> srcPartitionNames = new ArrayList<>();
     PersistedJobInfo persistedJobInfoCompletableFuture =
-        PersistedJobInfo.createDeferred(
+        PersistedJobInfo.createMany(
             ReplicationOperation.COPY_PARTITION,
             ReplicationStatus.PENDING,
             Optional.empty(),
@@ -166,7 +165,7 @@ public class PersistedJobInfoStoreTest {
       List<PersistedJobInfo> subResults = new ArrayList<>();
       for (String srcCluster : ll) {
         PersistedJobInfo persistedJobInfo =
-            PersistedJobInfo.createDeferred(
+            PersistedJobInfo.createMany(
                 ReplicationOperation.COPY_PARTITION,
                 ReplicationStatus.PENDING,
                 Optional.empty(),

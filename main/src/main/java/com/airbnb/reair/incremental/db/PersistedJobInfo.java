@@ -132,7 +132,7 @@ public class PersistedJobInfo {
 
   void setPersisted(Long id) {
     if (this.persistState == PersistState.PERSISTED) {
-      throw new RuntimeException("Cant persist twice");
+      throw new RuntimeException("PersistedJobInfo.setPersisted can only be called once.");
     }
     this.persistState = PersistState.PERSISTED;
     this.id.complete(id);
@@ -151,10 +151,10 @@ public class PersistedJobInfo {
       if (this.id.isDone()) {
         return this.id.get();
       } else {
-        throw new RuntimeException("getId should not be called before persisted.");
+        throw new RuntimeException("getId should not be called before setPersisted().");
       }
     } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException("Impossible");
+      throw new RuntimeException("These exceptions should never be thrown.");
     }
   }
 
@@ -333,7 +333,7 @@ public class PersistedJobInfo {
    * @param extras extras
    * @return An unpersisted PersistedJobInfo
    */
-  public static PersistedJobInfo createDeferred(
+  public static PersistedJobInfo createMany(
       ReplicationOperation operation,
       ReplicationStatus status,
       Optional<Path> srcPath,
