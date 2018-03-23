@@ -10,6 +10,7 @@ import com.airbnb.reair.incremental.configuration.DestinationObjectFactory;
 import com.airbnb.reair.incremental.configuration.ObjectConflictHandler;
 import com.airbnb.reair.incremental.db.PersistedJobInfo;
 import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
+import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
 import com.airbnb.reair.incremental.filter.ReplicationFilter;
 import com.airbnb.reair.incremental.primitives.CopyPartitionTask;
 import com.airbnb.reair.incremental.primitives.CopyPartitionedTableTask;
@@ -49,7 +50,7 @@ public class ReplicationServer implements TReplicationService.Iface {
 
   private static final long POLL_WAIT_TIME_MS = 10 * 1000;
   // how many audit log entries to process at once
-  private static final int BATCH_SIZE = 128;
+  private int auditLogBatchSize;
 
   // If there is a need to wait to poll, wait this many ms
   private long pollWaitTimeMs = POLL_WAIT_TIME_MS;
@@ -187,6 +188,8 @@ public class ReplicationServer implements TReplicationService.Iface {
 
     this.jobExecutor = new ParallelJobExecutor("TaskWorker", numWorkers);
     this.copyPartitionJobExecutor = new ParallelJobExecutor("CopyPartitionWorker", numWorkers);
+    this.auditLogBatchSize = conf.getInt(
+        ConfigurationKeys.AUDIT_LOG_PROCESSING_BATCH_SIZE, 128);
 
     this.directoryCopier = directoryCopier;
 
@@ -384,7 +387,7 @@ public class ReplicationServer implements TReplicationService.Iface {
         ReplicationUtils.sleep(pollWaitTimeMs);
         continue;
       }
-      long batchSize = BATCH_SIZE;
+      long batchSize = auditLogBatchSize;
 
       // Stop if we've had enough successful jobs - for testing purposes
       // only

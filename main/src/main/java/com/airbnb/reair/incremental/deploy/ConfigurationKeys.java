@@ -18,6 +18,9 @@ public class ConfigurationKeys {
   // Name of the table containing mapred job stats
   public static final String AUDIT_LOG_MAPRED_STATS_DB_TABLE =
       "airbnb.reair.audit_log.mapred_stats.db.table_name";
+  // Affects how many AuditLogEntries are read and processed at once, default 128
+  public static final String AUDIT_LOG_PROCESSING_BATCH_SIZE =
+      "airbnb.reair.audit_log.batch_size";
 
   // JDB URL to the DB containing the replication state tables
   public static final String STATE_JDBC_URL = "airbnb.reair.state.db.jdbc_url";
