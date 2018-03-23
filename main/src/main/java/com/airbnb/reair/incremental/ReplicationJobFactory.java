@@ -114,7 +114,7 @@ public class ReplicationJobFactory {
     extras.put(PersistedJobInfo.AUDIT_LOG_ENTRY_CREATE_TIME_KEY,
         Long.toString(auditLogEntryCreateTime));
 
-    PersistedJobInfo persistedJobInfo = PersistedJobInfo.createMany(
+    PersistedJobInfo persistedJobInfo = PersistedJobInfo.createDeferred(
         replicationOperation,
         ReplicationStatus.PENDING, ReplicationUtils.getLocation(table), srcCluster.getName(),
         new HiveObjectSpec(table), Collections.emptyList(), ReplicationUtils.getTldt(table),
@@ -166,7 +166,7 @@ public class ReplicationJobFactory {
     ReplicationOperation replicationOperation = ReplicationOperation.COPY_PARTITION;
 
     PersistedJobInfo persistedJobInfo =
-        PersistedJobInfo.createMany(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING,
             Optional.empty(), srcCluster.getName(), spec, partitionNames,
             Optional.empty(), Optional.empty(), Optional.empty(), extras);
@@ -206,7 +206,7 @@ public class ReplicationJobFactory {
     Partition partition = namedPartition.getPartition();
     HiveObjectSpec spec = new HiveObjectSpec(namedPartition);
     PersistedJobInfo persistedJobInfo =
-        PersistedJobInfo.createMany(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING,
             ReplicationUtils.getLocation(partition), srcCluster.getName(), spec, partitionNames,
             ReplicationUtils.getTldt(partition), Optional.empty(), Optional.empty(), extras);
@@ -252,7 +252,7 @@ public class ReplicationJobFactory {
         Long.toString(auditLogEntryCreateTime));
 
     PersistedJobInfo persistedJobInfo =
-        PersistedJobInfo.createMany(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING, commonLocation,
             srcCluster.getName(), tableSpec, partitionNames,
             Optional.empty(), Optional.empty(), Optional.empty(), extras);
@@ -305,7 +305,7 @@ public class ReplicationJobFactory {
     HiveObjectSpec tableSpec = new HiveObjectSpec(table);
 
     PersistedJobInfo persistedJobInfo =
-        PersistedJobInfo.createMany(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING,
             ReplicationUtils.getLocation(table), srcCluster.getName(), tableSpec,
             Collections.emptyList(), ReplicationUtils.getTldt(table), Optional.empty(),
@@ -347,7 +347,7 @@ public class ReplicationJobFactory {
     partitionNames.add(namedPartition.getName());
     Optional<String> partitionTldt = ReplicationUtils.getTldt(namedPartition.getPartition());
     PersistedJobInfo persistedJobInfo =
-        PersistedJobInfo.createMany(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING,
             ReplicationUtils.getLocation(namedPartition.getPartition()),
             srcCluster.getName(), partitionSpec.getTableSpec(), partitionNames, partitionTldt,
@@ -393,7 +393,7 @@ public class ReplicationJobFactory {
     Optional<Path> renameToPath = ReplicationUtils.getLocation(renameToTable);
 
     PersistedJobInfo persistedJobInfo =
-        PersistedJobInfo.createMany(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING, renameFromPath,
             srcCluster.getName(), renameFromTableSpec,
             new ArrayList<>(), ReplicationUtils.getTldt(renameFromTable),
@@ -446,7 +446,7 @@ public class ReplicationJobFactory {
     Optional renameToPath = ReplicationUtils.getLocation(renameToPartition.getPartition());
 
     PersistedJobInfo persistedJobInfo =
-        PersistedJobInfo.createMany(
+        PersistedJobInfo.createDeferred(
             replicationOperation, ReplicationStatus.PENDING, renameFromPath,
             srcCluster.getName(), renameFromPartitionSpec,
             new ArrayList<>(), ReplicationUtils.getTldt(renameFromPartition.getPartition()),
@@ -496,7 +496,7 @@ public class ReplicationJobFactory {
         toPersist.add(replicationJob.getPersistedJobInfo());
       }
     }
-    persistedJobInfoStore.batchPersistNew(toPersist);
+    persistedJobInfoStore.createMany(toPersist);
     return replicationJobs;
   }
   /**

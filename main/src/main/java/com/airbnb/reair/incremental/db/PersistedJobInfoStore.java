@@ -4,7 +4,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import com.airbnb.reair.db.DbConnectionFactory;
-import com.airbnb.reair.incremental.ReplicationJob;
 import com.airbnb.reair.incremental.ReplicationOperation;
 import com.airbnb.reair.incremental.ReplicationStatus;
 import com.airbnb.reair.incremental.ReplicationUtils;
@@ -277,7 +276,7 @@ public class PersistedJobInfoStore {
     }
   }
 
-  private synchronized void batchPersistNewImpl(List<PersistedJobInfo> jobs)
+  private synchronized void createManyImpl(List<PersistedJobInfo> jobs)
       throws IOException, SQLException, StateUpdateException {
     LOG.debug(String.format("Persisting %d PersistedJobInfos", jobs.size()));
     if (jobs.size() == 0) {
@@ -318,7 +317,7 @@ public class PersistedJobInfoStore {
    * @param jobs a list of PersistedJobInfos in the PENDING state
    * @throws StateUpdateException if there is a SQLException or any Infos are not PENDING
    */
-  public synchronized void batchPersistNew(List<PersistedJobInfo> jobs)
+  public synchronized void createMany(List<PersistedJobInfo> jobs)
       throws StateUpdateException {
     for (PersistedJobInfo job: jobs) {
       if (job.getPersistState() == PersistedJobInfo.PersistState.PERSISTED) {
@@ -326,7 +325,7 @@ public class PersistedJobInfoStore {
       }
     }
     try {
-      retryingTaskRunner.runWithRetries(() -> batchPersistNewImpl(jobs));
+      retryingTaskRunner.runWithRetries(() -> createManyImpl(jobs));
     } catch (IOException | SQLException e) {
       throw new StateUpdateException(e);
     } catch (StateUpdateException e) {

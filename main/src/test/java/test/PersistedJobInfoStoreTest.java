@@ -84,7 +84,7 @@ public class PersistedJobInfoStoreTest {
     partitionNames.add("ds=1/hr=1");
     Map<String, String> extras = new HashMap<>();
     extras.put("foo", "bar");
-    PersistedJobInfo testJob = PersistedJobInfo.createMany(
+    PersistedJobInfo testJob = PersistedJobInfo.createDeferred(
         ReplicationOperation.COPY_UNPARTITIONED_TABLE,
         ReplicationStatus.PENDING,
         Optional.of(new Path("file:///tmp/test_table")),
@@ -95,7 +95,7 @@ public class PersistedJobInfoStoreTest {
         Optional.of(new HiveObjectSpec("test_db", "renamed_table", "ds=1/hr=1")),
         Optional.of(new Path("file://tmp/a/b/c")),
         extras);
-    jobStore.batchPersistNew(Arrays.asList(testJob));
+    jobStore.createMany(Arrays.asList(testJob));
 
     // Test out retrieval
     Map<Long, PersistedJobInfo> idToJob = new HashMap<>();
@@ -127,7 +127,7 @@ public class PersistedJobInfoStoreTest {
         "a","b");
     List<String> srcPartitionNames = new ArrayList<>();
     PersistedJobInfo persistedJobInfoCompletableFuture =
-        PersistedJobInfo.createMany(
+        PersistedJobInfo.createDeferred(
             ReplicationOperation.COPY_PARTITION,
             ReplicationStatus.PENDING,
             Optional.empty(),
@@ -138,7 +138,7 @@ public class PersistedJobInfoStoreTest {
             Optional.empty(),
             Optional.empty(),
             new HashMap<>());
-    jobStore.batchPersistNew(Arrays.asList(persistedJobInfoCompletableFuture));
+    jobStore.createMany(Arrays.asList(persistedJobInfoCompletableFuture));
   }
 
   @Test
@@ -165,7 +165,7 @@ public class PersistedJobInfoStoreTest {
       List<PersistedJobInfo> subResults = new ArrayList<>();
       for (String srcCluster : ll) {
         PersistedJobInfo persistedJobInfo =
-            PersistedJobInfo.createMany(
+            PersistedJobInfo.createDeferred(
                 ReplicationOperation.COPY_PARTITION,
                 ReplicationStatus.PENDING,
                 Optional.empty(),
@@ -181,7 +181,7 @@ public class PersistedJobInfoStoreTest {
       }
       actualResults.add(subResults);
     }
-    jobStore.batchPersistNew(jobs);
+    jobStore.createMany(jobs);
     for (int i = 0; i < expectedResults.size(); i++) {
       assertEquals(expectedResults.get(i).size(), actualResults.get(i).size());
       for (int j = 0; j < expectedResults.get(i).size(); j++) {
@@ -192,7 +192,7 @@ public class PersistedJobInfoStoreTest {
     }
     boolean exceptionThrown = false;
     try {
-      jobStore.batchPersistNew(jobs);
+      jobStore.createMany(jobs);
     } catch (StateUpdateException e) {
       exceptionThrown = true;
     }
@@ -201,7 +201,7 @@ public class PersistedJobInfoStoreTest {
 
   @Test
   public void testCreateNone() throws StateUpdateException {
-    jobStore.batchPersistNew(new ArrayList<>());
+    jobStore.createMany(new ArrayList<>());
   }
 
   @AfterClass

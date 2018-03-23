@@ -50,7 +50,7 @@ public class ReplicationServer implements TReplicationService.Iface {
 
   private static final long POLL_WAIT_TIME_MS = 10 * 1000;
   // how many audit log entries to process at once
-  private int auditLogBatchSize;
+  private final int auditLogBatchSize;
 
   // If there is a need to wait to poll, wait this many ms
   private long pollWaitTimeMs = POLL_WAIT_TIME_MS;

@@ -333,7 +333,7 @@ public class PersistedJobInfo {
    * @param extras extras
    * @return An unpersisted PersistedJobInfo
    */
-  public static PersistedJobInfo createMany(
+  public static PersistedJobInfo createDeferred(
       ReplicationOperation operation,
       ReplicationStatus status,
       Optional<Path> srcPath,
