@@ -70,11 +70,11 @@ public class ConfigurationKeys {
   // Whether to use a size based timeout for copy jobs
   public static final String COPY_JOB_DYNAMIC_TIMEOUT_ENABLED =
       "airbnb.reair.copy.timeout.dynamic.enabled";
-  public static final String COPY_JOB_DYNAMIC_TIMEOUT_SEC_PER_GB =
-      "airbnb.reair.copy.timeout.dynamic.sec_per_gb";
-  public static final String COPY_JOB_DYNAMIC_TIMEOUT_MIN =
-      "airbnb.reair.copy.timeout.dynamic.min";
-  public static final String COPY_JOB_DYNAMIC_TIMEOUT_MAX = "airbnb.reair.copy.timeout.dynamic.max";
+  public static final String COPY_JOB_DYNAMIC_TIMEOUT_MS_PER_GB_PER_MAPPER =
+      "airbnb.reair.copy.timeout.dynamic.ms_per_gb_per_mapper";
+  public static final String COPY_JOB_DYNAMIC_TIMEOUT_BASE =
+      "airbnb.reair.copy.timeout.dynamic.base.ms";
+  public static final String COPY_JOB_DYNAMIC_TIMEOUT_MAX = "airbnb.reair.copy.timeout.dynamic.max.ms";
   // If a replication job fails, the number of times to retry the job.
   public static final String JOB_RETRIES = "airbnb.reair.job.retries";
   // After a copy, whether to set / check that modified times for the copied files match between

@@ -97,23 +97,23 @@ public class DirectoryCopier {
             ConfigurationKeys.COPY_JOB_DYNAMIC_TIMEOUT_ENABLED,
             ConfigurationKeys.COPY_JOB_TIMEOUT_SECONDS));
       }
-      long dynamicTimeoutSecPerGb = conf.getLong(
-          ConfigurationKeys.COPY_JOB_DYNAMIC_TIMEOUT_SEC_PER_GB,
+      long dynamicTimeoutMsPerGbPerMapper = conf.getLong(
+          ConfigurationKeys.COPY_JOB_DYNAMIC_TIMEOUT_MS_PER_GB_PER_MAPPER,
           -1);
-      if (dynamicTimeoutSecPerGb > 0) {
-        options.setDistcpDynamicJobTimeoutMsPerGb(1_000L * dynamicTimeoutSecPerGb);
+      if (dynamicTimeoutMsPerGbPerMapper > 0) {
+        options.setDistcpDynamicJobTimeoutMsPerGbPerMapper(dynamicTimeoutMsPerGbPerMapper);
       }
       long dynamicTimeoutMin = conf.getLong(
-          ConfigurationKeys.COPY_JOB_DYNAMIC_TIMEOUT_MIN,
+          ConfigurationKeys.COPY_JOB_DYNAMIC_TIMEOUT_BASE,
           -1);
       if (dynamicTimeoutMin > 0) {
-        options.setDistcpDynamicJobTimeoutMin(1_000L * dynamicTimeoutMin);
+        options.setDistcpDynamicJobTimeoutBase(dynamicTimeoutMin);
       }
       long dynamicTimeoutMax = conf.getLong(
           ConfigurationKeys.COPY_JOB_DYNAMIC_TIMEOUT_MAX,
           -1);
       if (dynamicTimeoutMax > 0) {
-        options.setDistcpDynamicJobTimeoutMax(1_000L * dynamicTimeoutMax);
+        options.setDistcpDynamicJobTimeoutMax(dynamicTimeoutMax);
       }
 
       DistCpWrapper distCpWrapper = new DistCpWrapper(conf);
