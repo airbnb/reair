@@ -189,7 +189,7 @@ public class ReplicationServer implements TReplicationService.Iface {
     this.jobExecutor = new ParallelJobExecutor("TaskWorker", numWorkers);
     this.copyPartitionJobExecutor = new ParallelJobExecutor("CopyPartitionWorker", numWorkers);
     this.auditLogBatchSize = conf.getInt(
-        ConfigurationKeys.AUDIT_LOG_PROCESSING_BATCH_SIZE, 128);
+        ConfigurationKeys.AUDIT_LOG_PROCESSING_BATCH_SIZE, 32);
 
     this.directoryCopier = directoryCopier;
 
