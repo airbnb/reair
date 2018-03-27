@@ -1,11 +1,10 @@
 package com.airbnb.reair.common;
 
+import org.apache.hadoop.fs.Path;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.PriorityQueue;
-
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.hadoop.fs.Path;
 
 /**
  * A class to encapsulate various options required for running DistCp.
@@ -169,24 +168,11 @@ public class DistCpWrapperOptions {
   }
 
   /**
-   * Returns the timeout that should be used, given a filesize.
-   * Helps determine whether to use dynamic timeout or not, and handles logic for that.
-   * @param filesizeBytes filesize of files to be copied in bytes
-   * @return The timeout to be used, in millis
+   * Returns the distcp timeout in milliseconds according to options set.
+   * @param fileSizes File sizes of the files to copy.
+   * @param maxConcurrency The number of mappers in distcp.
+   * @return The timeout in milliseconds for distcp.
    */
-  public long getDistcpTimeout(long filesizeBytes) {
-    if (distcpDynamicJobTimeoutEnabled) {
-      long timeout = ((long) Math.ceil(filesizeBytes / 1e9)) * distcpDynamicJobTimeoutMsPerGbPerMapper;
-      long minTimeout = distcpDynamicJobTimeoutBase;
-      long maxTimeout = distcpDynamicJobTimeoutMax;
-      timeout = Math.max(minTimeout, timeout);
-      timeout = Math.min(maxTimeout, timeout);
-      return timeout;
-    } else {
-      return distcpJobTimeout;
-    }
-  }
-
   public long getDistcpTimeout(List<Long> fileSizes, long maxConcurrency) {
     if (distcpDynamicJobTimeoutEnabled) {
       long bytesPerMapper = computeLongestMapper(fileSizes, maxConcurrency);
@@ -203,7 +189,6 @@ public class DistCpWrapperOptions {
 
   /**
    * Computes an estimate for how many bytes the mapper that copies the most will copy.
-   *
    * This is within 4/3 of the optimal scheduling using a heuristic for the multiprocessor
    * scheduling problem.
    * @param fileSizes A list of filesizes to copy.
@@ -217,7 +202,7 @@ public class DistCpWrapperOptions {
       processors.add(0L);
     }
     Long maxValue = 0L;
-    for (int i = fileSizes.size() - 1; i>=0; i--) {
+    for (int i = fileSizes.size() - 1; i >= 0; i--) {
       Long popped = processors.poll();
       Long newValue = popped + fileSizes.get(i);
       processors.add(newValue);
