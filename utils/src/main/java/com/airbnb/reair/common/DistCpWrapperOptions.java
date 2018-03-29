@@ -184,7 +184,7 @@ public class DistCpWrapperOptions {
       long msPerGb = distcpDynamicJobTimeoutMsPerGbPerMapper;
       long adjustment = ((long) Math.ceil(bytesPerLongestMapper / 1e9) * msPerGb);
       long timeout = Math.min(maxTimeout, baseTimeout + adjustment);
-      LOG.debug(String.format("Setting dynamic timeout of %d milliseconds"));
+      LOG.debug(String.format("Setting dynamic timeout of %d milliseconds", timeout));
       return timeout;
     } else {
       return distcpJobTimeout;
