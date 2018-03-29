@@ -45,7 +45,7 @@ public class DistCpWrapperOptions {
   private boolean distcpDynamicJobTimeoutEnabled = false;
   // timeout in millis per GB per mapper, size will get rounded up
   private long distcpDynamicJobTimeoutMsPerGbPerMapper = 0;
-  // minimum job timeout for variable timeout (ms)
+  // minimum job timeout for variable timeout (ms) which accounts for overhead
   private long distcpDynamicJobTimeoutBase = distcpJobTimeout;
   // maximum job timeout for variable timeout (ms)
   private long distcpDynamicJobTimeoutMax = Long.MAX_VALUE;
@@ -175,11 +175,11 @@ public class DistCpWrapperOptions {
    */
   public long getDistcpTimeout(List<Long> fileSizes, long maxConcurrency) {
     if (distcpDynamicJobTimeoutEnabled) {
-      long bytesPerMapper = computeLongestMapper(fileSizes, maxConcurrency);
+      long bytesPerLongestMapper = computeLongestMapper(fileSizes, maxConcurrency);
       long baseTimeout = distcpDynamicJobTimeoutBase;
       long maxTimeout = distcpDynamicJobTimeoutMax;
       long msPerGb = distcpDynamicJobTimeoutMsPerGbPerMapper;
-      long adjustment = ((long) Math.ceil(bytesPerMapper / 1e9) * msPerGb);
+      long adjustment = ((long) Math.ceil(bytesPerLongestMapper / 1e9) * msPerGb);
       long timeout = Math.min(maxTimeout, baseTimeout + adjustment);
       return timeout;
     } else {
