@@ -184,7 +184,8 @@ public class DistCpWrapperOptions {
       long msPerGb = distcpDynamicJobTimeoutMsPerGbPerMapper;
       long adjustment = ((long) Math.ceil(bytesPerLongestMapper / 1e9) * msPerGb);
       long timeout = Math.min(maxTimeout, baseTimeout + adjustment);
-      LOG.debug(String.format("Setting dynamic timeout of %d milliseconds", timeout));
+      LOG.debug(String.format("Setting dynamic timeout of %d milliseconds for max mapper size %d",
+          timeout, bytesPerLongestMapper));
       return timeout;
     } else {
       return distcpJobTimeout;
@@ -212,7 +213,6 @@ public class DistCpWrapperOptions {
       processors.add(newValue);
       maxValue = Math.max(maxValue, newValue);
     }
-    LOG.debug(String.format("Max mapper has %d bytes", maxValue));
     return maxValue;
   }
 }
