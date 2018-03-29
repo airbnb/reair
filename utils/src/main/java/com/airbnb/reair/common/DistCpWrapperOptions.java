@@ -1,5 +1,7 @@
 package com.airbnb.reair.common;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 
 import java.util.Collections;
@@ -10,6 +12,7 @@ import java.util.PriorityQueue;
  * A class to encapsulate various options required for running DistCp.
  */
 public class DistCpWrapperOptions {
+  private static final Log LOG = LogFactory.getLog(DistCpWrapperOptions.class);
 
   // The source directory to copy
   private Path srcDir;
@@ -181,6 +184,7 @@ public class DistCpWrapperOptions {
       long msPerGb = distcpDynamicJobTimeoutMsPerGbPerMapper;
       long adjustment = ((long) Math.ceil(bytesPerLongestMapper / 1e9) * msPerGb);
       long timeout = Math.min(maxTimeout, baseTimeout + adjustment);
+      LOG.debug(String.format("Setting dynamic timeout of %d milliseconds"));
       return timeout;
     } else {
       return distcpJobTimeout;
@@ -208,6 +212,7 @@ public class DistCpWrapperOptions {
       processors.add(newValue);
       maxValue = Math.max(maxValue, newValue);
     }
+    LOG.debug(String.format("Max mapper has %d bytes", maxValue));
     return maxValue;
   }
 }
