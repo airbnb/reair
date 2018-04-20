@@ -22,6 +22,7 @@ import com.airbnb.reair.incremental.filter.PassThoughReplicationFilter;
 import com.airbnb.reair.incremental.filter.ReplicationFilter;
 import com.airbnb.reair.utils.ReplicationTestUtils;
 
+import com.timgroup.statsd.NoOpStatsDClient;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -693,6 +694,7 @@ public class ReplicationServerTest extends MockClusterTest {
         persistedJobInfoStore,
         Arrays.asList(replicationFilter),
         new DirectoryCopier(conf, srcCluster.getTmpDir(), false),
+        new NoOpStatsDClient(),
         1,
         2,
         Optional.of(0L));

@@ -1,9 +1,9 @@
 package com.airbnb.reair.incremental;
 
+import com.timgroup.statsd.StatsDClient;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import com.timgroup.statsd.StatsDClient;
 
 /**
  * Counters used to track the progress of replication.

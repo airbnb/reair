@@ -396,7 +396,6 @@ public class ReplicationServer implements TReplicationService.Iface {
         ReplicationUtils.sleep(pollWaitTimeMs);
         continue;
       }
-      long batchSize = auditLogBatchSize;
 
       // Stop if we've had enough successful jobs - for testing purposes
       // only
@@ -420,6 +419,7 @@ public class ReplicationServer implements TReplicationService.Iface {
         continue;
       }
 
+      long batchSize = auditLogBatchSize;
       // make sure not to exceed maxJobsInMemory
       batchSize = Math.min(batchSize, maxJobsInMemory - jobExecutor.getNotDoneJobCount());
 

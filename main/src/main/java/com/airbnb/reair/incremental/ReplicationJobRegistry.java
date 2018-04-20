@@ -1,13 +1,13 @@
 package com.airbnb.reair.incremental;
 
+import com.timgroup.statsd.StatsDClient;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
-
-import com.timgroup.statsd.StatsDClient;
 
 /**
  * Keeps track of a set of jobs.
@@ -84,6 +84,9 @@ public class ReplicationJobRegistry {
     return new ArrayList<>(retiredJobs);
   }
 
+  /**
+   * Report stats on the age of replication jobs based on fixed thresholds.
+   */
   public synchronized void reportStats() {
     long now = System.currentTimeMillis() / 1000;
     Map<Long, Integer> mapCount = new HashMap<>();
