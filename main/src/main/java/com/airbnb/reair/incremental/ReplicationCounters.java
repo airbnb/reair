@@ -1,11 +1,11 @@
 package com.airbnb.reair.incremental;
 
+import static com.airbnb.reair.incremental.auditlog.MetricNames.TASK_BY_STATUS_COUNT;
+
 import com.timgroup.statsd.StatsDClient;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static com.airbnb.reair.incremental.auditlog.MetricNames.TASK_BY_STATUS_COUNT;
 
 /**
  * Counters used to track the progress of replication.
@@ -43,7 +43,8 @@ public class ReplicationCounters {
       currentCount = counters.get(type);
     }
     counters.put(type, currentCount + 1);
-    statsDClient.incrementCounter(String.format(TASK_BY_STATUS_COUNT, type.toString().toLowerCase()));
+    statsDClient.incrementCounter(
+        String.format(TASK_BY_STATUS_COUNT, type.toString().toLowerCase()));
   }
 
   /**

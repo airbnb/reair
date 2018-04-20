@@ -1,5 +1,9 @@
 package com.airbnb.reair.incremental;
 
+import static com.airbnb.reair.incremental.auditlog.MetricNames.AUDIT_LOG_ENTRIES_COUNT;
+import static com.airbnb.reair.incremental.auditlog.MetricNames.JOBS_IN_MEMORY_GAUGE;
+import static com.airbnb.reair.incremental.auditlog.MetricNames.PERSISTED_JOBS_COUNT;
+
 import com.airbnb.reair.common.HiveObjectSpec;
 import com.airbnb.reair.db.DbKeyValueStore;
 import com.airbnb.reair.incremental.auditlog.AuditLogEntry;
@@ -40,10 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
-
-import static com.airbnb.reair.incremental.auditlog.MetricNames.AUDIT_LOG_ENTRIES_COUNT;
-import static com.airbnb.reair.incremental.auditlog.MetricNames.JOBS_IN_MEMORY_GAUGE;
-import static com.airbnb.reair.incremental.auditlog.MetricNames.PERSISTED_JOBS_COUNT;
 
 /**
  * Replication server that reads entries from the audit log and replicates objects / operations

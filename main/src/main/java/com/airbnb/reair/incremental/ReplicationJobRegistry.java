@@ -1,5 +1,7 @@
 package com.airbnb.reair.incremental;
 
+import static com.airbnb.reair.incremental.auditlog.MetricNames.REPLICATION_JOBS_AGE_COUNT;
+
 import com.timgroup.statsd.StatsDClient;
 
 import java.util.ArrayList;
@@ -8,8 +10,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
-
-import static com.airbnb.reair.incremental.auditlog.MetricNames.REPLICATION_JOBS_AGE_COUNT;
 
 /**
  * Keeps track of a set of jobs.
