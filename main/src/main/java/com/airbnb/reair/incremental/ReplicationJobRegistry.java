@@ -97,7 +97,7 @@ public class ReplicationJobRegistry {
       if (job.getPersistedJobInfo().getSrcObjectTldt().isPresent()) {
         long time = Long.parseLong(job.getPersistedJobInfo().getSrcObjectTldt().get());
         for (Long value: thresholds) {
-          if (time - now > value) {
+          if (now - time > value) {
             mapCount.put(value, mapCount.get(value) + 1);
           }
         }
