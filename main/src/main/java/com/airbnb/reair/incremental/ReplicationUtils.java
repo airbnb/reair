@@ -91,11 +91,12 @@ public class ReplicationUtils {
    * @param srcMs source Hive metastore
    * @param destMs destination Hive metastore
    * @param dbName DB to create
+   * @param copyGrants whether to copy db grants
    *
    * @throws HiveMetastoreException if there's an error creating the DB.
    */
   public static void createDbIfNecessary(HiveMetastoreClient srcMs, HiveMetastoreClient destMs,
-      String dbName) throws HiveMetastoreException {
+      String dbName, boolean copyGrants) throws HiveMetastoreException {
     if (destMs.existsDb(dbName)) {
       LOG.debug("DB " + dbName + " already exists on destination.");
       return;
@@ -106,8 +107,17 @@ public class ReplicationUtils {
         return;
       }
       Database dbToCreate = new Database(srcDb.getName(), srcDb.getDescription(), null, null);
+      if (copyGrants) {
+        dbToCreate.setOwnerName(srcDb.getOwnerName());
+        dbToCreate.setOwnerType(srcDb.getOwnerType());
+      }
+
       LOG.debug("Creating DB: " + dbToCreate);
       destMs.createDatabase(dbToCreate);
+
+      if (copyGrants) {
+        destMs.grantPrivileges(srcMs.listDatabasePrivileges(srcDb.getName()));
+      }
     }
   }
 

@@ -206,8 +206,8 @@ public class CopyPartitionTask implements ReplicationTask {
 
     if (srcPath.isPresent() && destPath.isPresent() && needToCopy) {
       if (!allowDataCopy) {
-        LOG.debug(String.format("Need to copy %s to %s, but data " + "copy is not allowed", srcPath,
-            destPath));
+        LOG.debug(String.format("Need to copy %s to %s, but data " + "copy is not allowed",
+                srcPath, destPath));
         return new RunInfo(RunInfo.RunStatus.NOT_COMPLETABLE, 0);
       }
 
@@ -238,7 +238,12 @@ public class CopyPartitionTask implements ReplicationTask {
     switch (action) {
 
       case CREATE:
-        ReplicationUtils.createDbIfNecessary(srcMs, destMs, destPartition.getDbName());
+        ReplicationUtils.createDbIfNecessary(
+                srcMs,
+                destMs,
+                destPartition.getDbName(),
+                isSaslEnabled()
+        );
 
         LOG.debug("Creating " + spec + " since it does not exist on " + "the destination");
         destMs.addPartition(destPartition);
@@ -272,5 +277,9 @@ public class CopyPartitionTask implements ReplicationTask {
     lockSet.add(new Lock(Lock.Type.SHARED, spec.getTableSpec().toString()));
     lockSet.add(new Lock(Lock.Type.EXCLUSIVE, spec.toString()));
     return lockSet;
+  }
+
+  private boolean isSaslEnabled() {
+    return conf.getBoolean(ConfigurationKeys.SASL_ENABLED, false);
   }
 }

@@ -118,6 +118,11 @@ public class BatchUtils {
 
         dstFs.rename(tmpDstPath, dstPath);
         dstFs.setTimes(dstPath, srcStatus.getModificationTime(), srcStatus.getAccessTime());
+        if (syncOwnership(conf)) {
+          dstFs.setOwner(dstPath, srcStatus.getOwner(), srcStatus.getGroup());
+          syncOwnershipForParent(srcFs, dstFs, srcPath.getParent(), dstParentPath);
+        }
+
         LOG.info(dstPath.toString() + " file copied");
         progressable.progress();
         return null;
@@ -129,5 +134,20 @@ public class BatchUtils {
     }
 
     return lastError;
+  }
+
+  private static boolean syncOwnership(Configuration conf) {
+    return conf.getBoolean(ConfigurationKeys.SYNC_OWNERSHIP_FOR_FILE_COPY, false);
+  }
+
+  private static void syncOwnershipForParent(FileSystem srcFs, FileSystem dstFs,
+                                             Path srcParentPath, Path dstParentPath)
+          throws IOException {
+    FileStatus srcParentStatus = srcFs.getFileStatus(srcParentPath);
+    FileStatus dstParentStatus = dstFs.getFileStatus(dstParentPath);
+    if (!srcParentStatus.getOwner().equals(dstParentStatus.getOwner())
+            || !srcParentStatus.getGroup().equals(dstParentStatus.getGroup())) {
+      dstFs.setOwner(dstParentPath, srcParentStatus.getOwner(), srcParentStatus.getGroup());
+    }
   }
 }

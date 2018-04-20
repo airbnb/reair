@@ -21,6 +21,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.metastore.api.PrincipalPrivilegeSet;
 import org.apache.hadoop.hive.metastore.api.Table;
 
 import java.io.IOException;
@@ -175,8 +176,20 @@ public class CopyUnpartitionedTableTask implements ReplicationTask {
 
       case CREATE:
         LOG.debug("Creating " + spec + " since it does not exist on " + "the destination");
-        ReplicationUtils.createDbIfNecessary(srcMs, destMs, destTable.getDbName());
+        ReplicationUtils.createDbIfNecessary(
+                srcMs,
+                destMs,
+                destTable.getDbName(),
+                isSaslEnabled()
+        );
         LOG.debug("Creating: " + destTable);
+        if (isSaslEnabled()) {
+          PrincipalPrivilegeSet privilegeSet = srcMs.listTablePrivileges(
+                  spec.getDbName(),
+                  spec.getTableName()
+          );
+          destTable.setPrivileges(privilegeSet);
+        }
         destMs.createTable(destTable);
         LOG.debug("Successfully created " + spec);
         break;
@@ -185,6 +198,13 @@ public class CopyUnpartitionedTableTask implements ReplicationTask {
         LOG.debug("Altering table " + spec + " on destination");
         LOG.debug("Existing table: " + existingTable);
         LOG.debug("New table: " + destTable);
+        if (isSaslEnabled()) {
+          PrincipalPrivilegeSet privilegeSet = srcMs.listTablePrivileges(
+                  spec.getDbName(),
+                  spec.getTableName()
+          );
+          destTable.setPrivileges(privilegeSet);
+        }
         destMs.alterTable(destTable.getDbName(), destTable.getTableName(), destTable);
         LOG.debug("Successfully altered " + spec);
         break;
@@ -198,6 +218,10 @@ public class CopyUnpartitionedTableTask implements ReplicationTask {
     }
 
     return new RunInfo(RunInfo.RunStatus.SUCCESSFUL, bytesCopied);
+  }
+
+  private boolean isSaslEnabled() {
+    return conf.getBoolean(ConfigurationKeys.SASL_ENABLED, false);
   }
 
   @Override

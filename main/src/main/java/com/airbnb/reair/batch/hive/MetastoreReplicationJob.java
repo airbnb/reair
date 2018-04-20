@@ -9,6 +9,8 @@ import com.airbnb.reair.common.HiveMetastoreException;
 import com.airbnb.reair.common.HiveObjectSpec;
 import com.airbnb.reair.incremental.ReplicationUtils;
 import com.airbnb.reair.incremental.configuration.ConfigurationException;
+import com.airbnb.reair.incremental.configuration.SaslClusterUtils;
+import com.airbnb.reair.incremental.configuration.TokenInitException;
 import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
 import com.airbnb.reair.incremental.primitives.TaskEstimate;
 
@@ -361,10 +363,12 @@ public class MetastoreReplicationJob extends Configured implements Tool {
         ConfigurationKeys.SRC_CLUSTER_METASTORE_URL,
         ConfigurationKeys.SRC_HDFS_ROOT,
         ConfigurationKeys.SRC_HDFS_TMP,
+        ConfigurationKeys.SRC_METASTORE_PRINCIPAL,
         ConfigurationKeys.DEST_CLUSTER_NAME,
         ConfigurationKeys.DEST_CLUSTER_METASTORE_URL,
         ConfigurationKeys.DEST_HDFS_ROOT,
         ConfigurationKeys.DEST_HDFS_TMP,
+        ConfigurationKeys.DEST_METASTORE_PRINCIPAL,
         ConfigurationKeys.BATCH_JOB_METASTORE_BLACKLIST,
         ConfigurationKeys.BATCH_JOB_CLUSTER_FACTORY_CLASS,
         ConfigurationKeys.BATCH_JOB_OUTPUT_DIR,
@@ -372,8 +376,10 @@ public class MetastoreReplicationJob extends Configured implements Tool {
         ConfigurationKeys.BATCH_JOB_METASTORE_PARALLELISM,
         ConfigurationKeys.BATCH_JOB_COPY_PARALLELISM,
         ConfigurationKeys.SYNC_MODIFIED_TIMES_FOR_FILE_COPY,
+        ConfigurationKeys.SYNC_OWNERSHIP_FOR_FILE_COPY,
         ConfigurationKeys.BATCH_JOB_VERIFY_COPY_CHECKSUM,
         ConfigurationKeys.BATCH_JOB_OVERWRITE_NEWER,
+        ConfigurationKeys.SASL_ENABLED,
         MRJobConfig.MAP_SPECULATIVE,
         MRJobConfig.REDUCE_SPECULATIVE
         );
@@ -387,7 +393,7 @@ public class MetastoreReplicationJob extends Configured implements Tool {
   }
 
   private int runMetastoreCompareJob(Path output)
-    throws IOException, InterruptedException, ClassNotFoundException {
+          throws IOException, InterruptedException, ClassNotFoundException, TokenInitException {
     Job job = Job.getInstance(this.getConf(), "Stage1: Metastore Compare Job");
 
     job.setJarByClass(this.getClass());
@@ -401,6 +407,10 @@ public class MetastoreReplicationJob extends Configured implements Tool {
     FileOutputFormat.setOutputPath(job, output);
     FileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
 
+    if (isSaslEnabled()) {
+      SaslClusterUtils.tokensInit(job.getCredentials(), job.getConfiguration());
+    }
+
     boolean success = job.waitForCompletion(true);
 
     return success ? 0 : 1;
@@ -413,7 +423,8 @@ public class MetastoreReplicationJob extends Configured implements Tool {
    * @param outputPath the directory to store the logging output data
    */
   private int runMetastoreCompareJob(Optional<Path> inputTableListPath, Path outputPath)
-      throws InterruptedException, IOException, ClassNotFoundException, TemplateRenderException {
+          throws InterruptedException, IOException, ClassNotFoundException,
+          TemplateRenderException, TokenInitException {
     LOG.info("Starting job for step 1...");
 
     int result;
@@ -433,7 +444,7 @@ public class MetastoreReplicationJob extends Configured implements Tool {
   }
 
   private int runMetastoreCompareJobWithTextInput(Path input, Path output)
-    throws IOException, InterruptedException, ClassNotFoundException {
+          throws IOException, InterruptedException, ClassNotFoundException, TokenInitException {
     Job job = Job.getInstance(this.getConf(), "Stage1: Metastore Compare Job with Input List");
 
     job.setJarByClass(this.getClass());
@@ -455,6 +466,9 @@ public class MetastoreReplicationJob extends Configured implements Tool {
         ConfigurationKeys.BATCH_JOB_METASTORE_PARALLELISM,
         150));
 
+    if (isSaslEnabled()) {
+      SaslClusterUtils.tokensInit(job.getCredentials(), job.getConfiguration());
+    }
 
     boolean success = job.waitForCompletion(true);
 
@@ -462,7 +476,8 @@ public class MetastoreReplicationJob extends Configured implements Tool {
   }
 
   private int runHdfsCopyJob(Path input, Path output)
-    throws IOException, InterruptedException, ClassNotFoundException, TemplateRenderException {
+          throws IOException, InterruptedException, ClassNotFoundException,
+          TemplateRenderException, TokenInitException {
 
     LOG.info("Starting job for step 2...");
 
@@ -488,6 +503,10 @@ public class MetastoreReplicationJob extends Configured implements Tool {
         ConfigurationKeys.BATCH_JOB_COPY_PARALLELISM,
         150));
 
+    if (isSaslEnabled()) {
+      SaslClusterUtils.tokensInit(job.getCredentials(), job.getConfiguration());
+    }
+
     boolean success = job.waitForCompletion(true);
 
     if (success) {
@@ -501,7 +520,8 @@ public class MetastoreReplicationJob extends Configured implements Tool {
   }
 
   private int runCommitChangeJob(Path input, Path output)
-    throws IOException, InterruptedException, ClassNotFoundException, TemplateRenderException {
+          throws IOException, InterruptedException, ClassNotFoundException,
+          TemplateRenderException, TokenInitException {
 
     LOG.info("Starting job for step 3...");
 
@@ -527,6 +547,10 @@ public class MetastoreReplicationJob extends Configured implements Tool {
         ConfigurationKeys.BATCH_JOB_METASTORE_PARALLELISM,
         150));
 
+    if (isSaslEnabled()) {
+      SaslClusterUtils.tokensInit(job.getCredentials(), job.getConfiguration());
+    }
+
     boolean success = job.waitForCompletion(true);
 
     if (success) {
@@ -535,6 +559,10 @@ public class MetastoreReplicationJob extends Configured implements Tool {
           + VelocityUtils.renderTemplate(STEP3_HQL_TEMPLATE, velocityContext));
     }
     return success ? 0 : 1;
+  }
+
+  private boolean isSaslEnabled() {
+    return getConf().getBoolean(ConfigurationKeys.SASL_ENABLED, false);
   }
 
   /**

@@ -27,6 +27,7 @@ public class MetastoreReplUtils {
       ClusterFactory factory = null;
       try {
         factory = (ClusterFactory) Class.forName(clusterFactoryClassName).newInstance();
+        factory.setConf(conf);
       } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
         throw new RuntimeException(e);
       }

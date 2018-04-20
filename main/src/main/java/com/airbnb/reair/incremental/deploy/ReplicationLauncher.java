@@ -12,6 +12,9 @@ import com.airbnb.reair.incremental.configuration.Cluster;
 import com.airbnb.reair.incremental.configuration.ClusterFactory;
 import com.airbnb.reair.incremental.configuration.ConfigurationException;
 import com.airbnb.reair.incremental.configuration.ConfiguredClusterFactory;
+import com.airbnb.reair.incremental.configuration.SaslClusterFactory;
+import com.airbnb.reair.incremental.configuration.SaslClusterUtils;
+import com.airbnb.reair.incremental.configuration.TokenInitException;
 import com.airbnb.reair.incremental.db.PersistedJobInfoStore;
 import com.airbnb.reair.incremental.filter.ReplicationFilter;
 import com.airbnb.reair.incremental.thrift.TReplicationService;
@@ -26,6 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.Credentials;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TSimpleServer;
 import org.apache.thrift.transport.TServerSocket;
@@ -56,8 +60,8 @@ public class ReplicationLauncher {
   public static void launch(Configuration conf,
       Optional<Long> startAfterAuditLogId,
       boolean resetState)
-    throws AuditLogEntryException, ConfigurationException, IOException, StateUpdateException,
-      SQLException {
+          throws AuditLogEntryException, ConfigurationException, IOException, StateUpdateException,
+          SQLException, TokenInitException {
 
 
     // Create the audit log reader
@@ -122,8 +126,7 @@ public class ReplicationLauncher {
       persistedJobInfoStore.abortRunnableFromDb();
     }
 
-    ClusterFactory clusterFactory = new ConfiguredClusterFactory();
-    clusterFactory.setConf(conf);
+    ClusterFactory clusterFactory = getClusterFactory(conf);
 
     final Cluster srcCluster = clusterFactory.getSrcCluster();
     final Cluster destCluster = clusterFactory.getDestCluster();
@@ -220,6 +223,23 @@ public class ReplicationLauncher {
     }
   }
 
+  private static ClusterFactory getClusterFactory(Configuration conf)
+          throws TokenInitException {
+    ClusterFactory clusterFactory;
+    if (isSaslEnabled(conf)) {
+      clusterFactory = new SaslClusterFactory();
+      SaslClusterUtils.tokensInit(new Credentials(), conf);
+    } else {
+      clusterFactory = new ConfiguredClusterFactory();
+    }
+    clusterFactory.setConf(conf);
+    return clusterFactory;
+  }
+
+  private static boolean isSaslEnabled(Configuration conf) {
+    return conf.getBoolean(ConfigurationKeys.SASL_ENABLED, false);
+  }
+
   /**
    * Launcher entry point.
    *
@@ -227,8 +247,8 @@ public class ReplicationLauncher {
    */
   @SuppressWarnings("static-access")
   public static void main(String[] argv)
-      throws AuditLogEntryException, ConfigurationException, IOException, ParseException,
-      StateUpdateException, SQLException {
+          throws AuditLogEntryException, ConfigurationException, IOException, ParseException,
+          StateUpdateException, SQLException, TokenInitException {
     Options options = new Options();
 
     options.addOption(OptionBuilder.withLongOpt("config-files")

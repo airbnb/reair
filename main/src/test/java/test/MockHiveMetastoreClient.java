@@ -9,10 +9,13 @@ import com.airbnb.reair.common.HiveObjectSpec;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.HiveObjectPrivilege;
 import org.apache.hadoop.hive.metastore.api.Partition;
+import org.apache.hadoop.hive.metastore.api.PrincipalPrivilegeSet;
 import org.apache.hadoop.hive.metastore.api.Table;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -374,5 +377,22 @@ public class MockHiveMetastoreClient implements HiveMetastoreClient {
   @Override
   public void close() {
 
+  }
+
+  @Override
+  public PrincipalPrivilegeSet listTablePrivileges(String dbName, String tableName)
+          throws HiveMetastoreException {
+    return new PrincipalPrivilegeSet();
+  }
+
+  @Override
+  public List<HiveObjectPrivilege> listDatabasePrivileges(String dbName)
+          throws HiveMetastoreException {
+    return Collections.emptyList();
+  }
+
+  @Override
+  public void grantPrivileges(List<HiveObjectPrivilege> privileges)
+          throws HiveMetastoreException {
   }
 }

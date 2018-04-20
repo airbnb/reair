@@ -53,6 +53,7 @@ public class DistCpWrapper {
     LOG.debug("Dest dir " + destDir + " exists is " + destDirExists);
 
     boolean syncModificationTimes = options.getSyncModificationTimes();
+    boolean syncOwnership = options.getSyncOwnership();
     boolean atomic = options.getAtomic();
     boolean canDeleteDest = options.getCanDeleteDest();
 
@@ -134,6 +135,11 @@ public class DistCpWrapper {
       if (syncModificationTimes) {
         FsUtils.syncModificationTimes(conf, srcDir, distcpDestDir, Optional.empty());
       }
+
+      if (syncOwnership) {
+        new OwnershipSynchronizer(conf).syncOwnership(srcDir, distcpDestDir, Optional.empty());
+      }
+
     } else {
 
       LOG.debug("DistCp log dir: " + distCpLogDir);
@@ -187,6 +193,10 @@ public class DistCpWrapper {
 
     if (syncModificationTimes) {
       FsUtils.syncModificationTimes(conf, srcDir, distcpDestDir, Optional.empty());
+    }
+
+    if (syncOwnership) {
+      new OwnershipSynchronizer(conf).syncOwnership(srcDir, distcpDestDir, Optional.empty());
     }
 
     if (!FsUtils.equalDirs(conf, srcDir, distcpDestDir, Optional.empty(), syncModificationTimes)) {

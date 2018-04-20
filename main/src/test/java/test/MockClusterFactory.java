@@ -16,6 +16,11 @@ public class MockClusterFactory implements ClusterFactory {
   }
 
   @Override
+  public Configuration getConf() throws ConfigurationException {
+    return null;
+  }
+
+  @Override
   public Cluster getSrcCluster() {
     return MockClusterTest.srcCluster;
   }

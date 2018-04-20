@@ -1,7 +1,9 @@
 package com.airbnb.reair.common;
 
 import org.apache.hadoop.hive.metastore.api.Database;
+import org.apache.hadoop.hive.metastore.api.HiveObjectPrivilege;
 import org.apache.hadoop.hive.metastore.api.Partition;
+import org.apache.hadoop.hive.metastore.api.PrincipalPrivilegeSet;
 import org.apache.hadoop.hive.metastore.api.Table;
 
 import java.util.List;
@@ -75,4 +77,11 @@ public interface HiveMetastoreClient {
   List<String> getAllTables(String dbName) throws HiveMetastoreException;
 
   void close();
+
+  PrincipalPrivilegeSet listTablePrivileges(String dbName, String tableName)
+          throws HiveMetastoreException;
+
+  List<HiveObjectPrivilege> listDatabasePrivileges(String dbName) throws HiveMetastoreException;
+
+  void grantPrivileges(List<HiveObjectPrivilege> privileges) throws HiveMetastoreException;
 }

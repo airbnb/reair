@@ -184,4 +184,30 @@
     <comment>Port that the thrift service should listen on.</comment>
   </property>
 
+  <!-- the following properties must be set if the clusters run in secure mode -->
+  <!--
+  <property>
+    <name>airbnb.reair.sasl.enabled</name>
+    <value>true</value>
+    <comment>Indicates if SASL is enabled (false by default)</comment>
+  </property>
+
+  <property>
+    <name>airbnb.reair.copy.ownership</name>
+    <value>true</value>
+    <comment>Whether to copy owner and group for the files.</comment>
+  </property>
+
+  <property>
+    <name>airbnb.reair.clusters.src.metastore.principal</name>
+    <value>user/_HOST@KRB_REALM</value>
+    <comment>The service principal for the src metastore thrift server</comment>
+  </property>
+
+  <property>
+    <name>airbnb.reair.clusters.dest.metastore.principal</name>
+    <value>user/_HOST@KRB_REALM</value>
+    <comment>The service principal for the dest metastore thrift server</comment>
+  </property>
+  -->
 </configuration>

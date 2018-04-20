@@ -45,6 +45,9 @@ public class ConfigurationKeys {
   public static final String SRC_HDFS_ROOT = "airbnb.reair.clusters.src.hdfs.root";
   // The root of the temporary directory for storing temporary files on the source cluster
   public static final String SRC_HDFS_TMP = "airbnb.reair.clusters.src.hdfs.tmp";
+  // The service principal for the src metastore thrift server
+  public static final String SRC_METASTORE_PRINCIPAL =
+          "airbnb.reair.clusters.src.metastore.principal";
 
   // Name to use for the destination cluster
   public static final String DEST_CLUSTER_NAME = "airbnb.reair.clusters.dest.name";
@@ -55,6 +58,9 @@ public class ConfigurationKeys {
   public static final String DEST_HDFS_ROOT = "airbnb.reair.clusters.dest.hdfs.root";
   // The root of the temporary directory for storing temporary files on the destination cluster
   public static final String DEST_HDFS_TMP = "airbnb.reair.clusters.dest.hdfs.tmp";
+  // The service principal for the dest metastore thrift server
+  public static final String DEST_METASTORE_PRINCIPAL =
+          "airbnb.reair.clusters.dest.metastore.principal";
 
   // Class to use for filtering out entries from the audit log
   public static final String OBJECT_FILTER_CLASS = "airbnb.reair.object.filter";
@@ -82,7 +88,11 @@ public class ConfigurationKeys {
   // the source and the destination. Set to false for file systems that don't support changes
   // to the modified time.
   public static final String SYNC_MODIFIED_TIMES_FOR_FILE_COPY =
-      "airbnb.reair.copy.sync_modified_times";
+          "airbnb.reair.copy.sync_modified_times";
+  // Whether to copy owner and group for files.
+  public static final String SYNC_OWNERSHIP_FOR_FILE_COPY = "airbnb.reair.copy.ownership";
+  // Indicates if SASL is enabled (false by default)
+  public static final String SASL_ENABLED = "airbnb.reair.sasl.enabled";
 
   // Following are settings pertinent to batch replication only.
 

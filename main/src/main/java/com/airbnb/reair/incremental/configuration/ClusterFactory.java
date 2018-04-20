@@ -8,6 +8,8 @@ public interface ClusterFactory {
 
   void setConf(Configuration conf);
 
+  Configuration getConf() throws ConfigurationException;
+
   Cluster getSrcCluster() throws ConfigurationException;
 
   Cluster getDestCluster() throws ConfigurationException;

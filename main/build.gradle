@@ -9,6 +9,9 @@ description = 'Airbnb ReAir Main'
 dependencies {
   compile project(':airbnb-reair-hive-hooks')
   compile project(':airbnb-reair-thrift')
+  compile(group: 'org.apache.hive', name: 'hive-exec', version:'0.13.1-cdh5.3.3') {
+    exclude(module: '*')
+  }
   compile(group: 'org.apache.hive', name: 'hive-metastore', version:'0.13.1-cdh5.3.3') {
     exclude(module: '*')
   }
