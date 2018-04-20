@@ -92,7 +92,7 @@ public class ReplicationServer implements TReplicationService.Iface {
 
   private volatile boolean pauseRequested = false;
 
-  private StatsTracker statsTracker = new StatsTracker(jobRegistry);
+  private StatsTracker statsTracker;
 
   private DirectoryCopier directoryCopier;
 
@@ -198,6 +198,7 @@ public class ReplicationServer implements TReplicationService.Iface {
         ConfigurationKeys.AUDIT_LOG_PROCESSING_BATCH_SIZE, 32);
 
     this.jobRegistry = new ReplicationJobRegistry(statsDClient);
+    this.statsTracker = new StatsTracker(jobRegistry);
 
     this.directoryCopier = directoryCopier;
 
