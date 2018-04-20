@@ -41,6 +41,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
 
+import static com.airbnb.reair.incremental.auditlog.MetricNames.AUDIT_LOG_ENTRIES_COUNT;
+import static com.airbnb.reair.incremental.auditlog.MetricNames.JOBS_IN_MEMORY_GAUGE;
+import static com.airbnb.reair.incremental.auditlog.MetricNames.PERSISTED_JOBS_COUNT;
+
 /**
  * Replication server that reads entries from the audit log and replicates objects / operations
  * from the source warehouse to the destination warehouse.
@@ -410,7 +414,7 @@ public class ReplicationServer implements TReplicationService.Iface {
         return;
       }
 
-      statsDClient.gauge("jobs_in_memory", jobExecutor.getNotDoneJobCount());
+      statsDClient.gauge(JOBS_IN_MEMORY_GAUGE, jobExecutor.getNotDoneJobCount());
       // Wait if there are too many jobs
       if (jobExecutor.getNotDoneJobCount() >= maxJobsInMemory) {
         LOG.debug(String.format(
@@ -429,7 +433,7 @@ public class ReplicationServer implements TReplicationService.Iface {
       List<AuditLogEntry> auditLogEntries = auditLogReader.resilientNext((int) batchSize);
 
       LOG.debug(String.format("Got %d audit log entries", auditLogEntries.size()));
-      statsDClient.count("audit_log_entries_read", auditLogEntries.size());
+      statsDClient.count(AUDIT_LOG_ENTRIES_COUNT, auditLogEntries.size());
       for (AuditLogEntry entry : auditLogEntries) {
         LOG.debug("Got audit log entry: " + entry);
       }
@@ -452,7 +456,7 @@ public class ReplicationServer implements TReplicationService.Iface {
         replicationJobsJobsSize += rj.size();
       }
       LOG.debug(String.format("Persisted %d replication jobs", replicationJobsJobsSize));
-      statsDClient.count("persisted_replication_jobs", replicationJobsJobsSize);
+      statsDClient.count(PERSISTED_JOBS_COUNT, replicationJobsJobsSize);
       // Since the replication job was created and persisted, we can
       // advance the last persisted ID. Update every 10s to reduce db
 

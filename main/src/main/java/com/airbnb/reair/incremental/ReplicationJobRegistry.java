@@ -9,6 +9,8 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static com.airbnb.reair.incremental.auditlog.MetricNames.REPLICATION_JOBS_AGE_COUNT;
+
 /**
  * Keeps track of a set of jobs.
  */
@@ -104,7 +106,7 @@ public class ReplicationJobRegistry {
       }
     }
     for (Map.Entry<Long, Integer> val: mapCount.entrySet()) {
-      statsDClient.gauge("replication_jobs.age." + val.getKey() + "s", val.getValue());
+      statsDClient.gauge(String.format(REPLICATION_JOBS_AGE_COUNT, val.getKey()), val.getValue());
     }
   }
 
