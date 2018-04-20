@@ -2,21 +2,29 @@ package com.airbnb.reair.incremental;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.TreeMap;
+
+import com.timgroup.statsd.StatsDClient;
 
 /**
  * Keeps track of a set of jobs.
  */
 public class ReplicationJobRegistry {
+  private static final long[] thresholds = {1800, 3600, 7200, 10800, 21600};
 
   private static long MAX_RETIRED_JOBS = 200;
+  private StatsDClient statsDClient;
 
   TreeMap<Long, ReplicationJob> idToReplicationJob = new TreeMap<>();
 
   LinkedList<ReplicationJob> retiredJobs = new LinkedList<>();
 
-  public ReplicationJobRegistry() {}
+  public ReplicationJobRegistry(StatsDClient statsDClient) {
+    this.statsDClient = statsDClient;
+  }
 
   public synchronized void registerJob(ReplicationJob job) {
     idToReplicationJob.put(job.getId(), job);
@@ -76,6 +84,25 @@ public class ReplicationJobRegistry {
     return new ArrayList<>(retiredJobs);
   }
 
-
+  public synchronized void reportStats() {
+    long now = System.currentTimeMillis() / 1000;
+    Map<Long, Integer> mapCount = new HashMap<>();
+    for (Long value: thresholds) {
+      mapCount.put(value, 0);
+    }
+    for (ReplicationJob job : idToReplicationJob.values()) {
+      if (job.getPersistedJobInfo().getSrcObjectTldt().isPresent()) {
+        long time = Long.parseLong(job.getPersistedJobInfo().getSrcObjectTldt().get());
+        for (Long value: thresholds) {
+          if (time - now > value) {
+            mapCount.put(value, mapCount.get(value) + 1);
+          }
+        }
+      }
+    }
+    for (Map.Entry<Long, Integer> val: mapCount.entrySet()) {
+      statsDClient.gauge("replication_jobs.age." + val.getKey() + "s", val.getValue());
+    }
+  }
 
 }

@@ -3,6 +3,8 @@ package com.airbnb.reair.incremental;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.timgroup.statsd.StatsDClient;
+
 /**
  * Counters used to track the progress of replication.
  */
@@ -21,9 +23,11 @@ public class ReplicationCounters {
   }
 
   private Map<Type, Long> counters;
+  private StatsDClient statsDClient;
 
-  public ReplicationCounters() {
+  public ReplicationCounters(StatsDClient client) {
     counters = new HashMap<>();
+    statsDClient = client;
   }
 
   /**
@@ -32,12 +36,12 @@ public class ReplicationCounters {
    * @param type the type of counter
    */
   public synchronized void incrementCounter(Type type) {
-    //TODO: increment appropriate ocunter
     long currentCount = 0;
     if (counters.get(type) != null) {
       currentCount = counters.get(type);
     }
     counters.put(type, currentCount + 1);
+    statsDClient.incrementCounter("tasks." + type.toString().toLowerCase());
   }
 
   /**
