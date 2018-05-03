@@ -1,6 +1,6 @@
 package com.airbnb.reair.incremental;
 
-import static com.airbnb.reair.incremental.auditlog.MetricNames.TASK_BY_STATUS_COUNT;
+import static com.airbnb.reair.incremental.auditlog.MetricNames.REPLICATION_STATUS_COUNT;
 
 import com.timgroup.statsd.StatsDClient;
 
@@ -44,7 +44,7 @@ public class ReplicationCounters {
     }
     counters.put(type, currentCount + 1);
     statsDClient.incrementCounter(
-        String.format(TASK_BY_STATUS_COUNT, type.toString().toLowerCase()));
+        String.format(REPLICATION_STATUS_COUNT, type.toString().toLowerCase()));
   }
 
   /**

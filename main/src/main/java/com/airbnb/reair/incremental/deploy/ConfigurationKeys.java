@@ -45,6 +45,12 @@ public class ConfigurationKeys {
   public static final String STATSD_PORT = "airbnb.reair.statsd.port";
   // default: reair
   public static final String STATSD_PREFIX = "airbnb.reair.statsd.prefix";
+  // ReplicationJob delay reported thresholds (seconds) (comma-separated)
+  public static final String REPLICATION_JOB_METRIC_THRESHOLDS =
+      "airbnb.reair.replication_job.threshold_seconds";
+  // Frequency at which to report stats in the ReplicationJobRegistry
+  public static final String REPLICATION_JOB_REGISTRY_REPORT_INTERVAL_SEC =
+      "airbnb.reair.replication.report.threshold_seconds";
 
   // Name to use for the source cluster
   public static final String SRC_CLUSTER_NAME = "airbnb.reair.clusters.src.name";

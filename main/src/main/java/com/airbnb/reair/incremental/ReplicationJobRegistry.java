@@ -2,30 +2,48 @@ package com.airbnb.reair.incremental;
 
 import static com.airbnb.reair.incremental.auditlog.MetricNames.REPLICATION_JOBS_AGE_COUNT;
 
+import com.airbnb.reair.incremental.deploy.ConfigurationKeys;
+
 import com.timgroup.statsd.StatsDClient;
+import org.apache.hadoop.conf.Configuration;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collector;
 
 /**
  * Keeps track of a set of jobs.
  */
 public class ReplicationJobRegistry {
-  private static final long[] thresholds = {1800, 3600, 7200, 10800, 21600};
+  private static final long[] DEFAULT_THRESHOLDS = {1800, 3600, 7200, 10800, 21600};
 
   private static long MAX_RETIRED_JOBS = 200;
   private StatsDClient statsDClient;
+  private long[] thresholds;
 
   TreeMap<Long, ReplicationJob> idToReplicationJob = new TreeMap<>();
 
   LinkedList<ReplicationJob> retiredJobs = new LinkedList<>();
 
-  public ReplicationJobRegistry(StatsDClient statsDClient) {
+  /**
+   *
+   * @param conf Configuration for Reair.
+   * @param statsDClient A statsDClient.
+   */
+  public ReplicationJobRegistry(Configuration conf, StatsDClient statsDClient) {
     this.statsDClient = statsDClient;
+    String thresholdString = conf.get(ConfigurationKeys.REPLICATION_JOB_METRIC_THRESHOLDS, null);
+    if (thresholdString != null) {
+      String[] splitString = thresholdString.trim().split(",");
+      thresholds = Arrays.stream(splitString).mapToLong(Long::parseLong).toArray();
+    } else {
+      this.thresholds = DEFAULT_THRESHOLDS;
+    }
   }
 
   public synchronized void registerJob(ReplicationJob job) {

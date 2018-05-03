@@ -102,6 +102,8 @@ public class ReplicationServer implements TReplicationService.Iface {
 
   private Optional<Long> startAfterAuditLogId = Optional.empty();
 
+  private long replicationJobRegistryReportInterval;
+
   // Responsible for persisting changes to the state of the replication job
   // once it finishes
   private class JobStateChangeHandler implements OnStateChangeHandler {
@@ -201,7 +203,7 @@ public class ReplicationServer implements TReplicationService.Iface {
     this.auditLogBatchSize = conf.getInt(
         ConfigurationKeys.AUDIT_LOG_PROCESSING_BATCH_SIZE, 32);
 
-    this.jobRegistry = new ReplicationJobRegistry(statsDClient);
+    this.jobRegistry = new ReplicationJobRegistry(conf, statsDClient);
     this.statsTracker = new StatsTracker(jobRegistry);
 
     this.directoryCopier = directoryCopier;
@@ -217,6 +219,9 @@ public class ReplicationServer implements TReplicationService.Iface {
         copyPartitionJobExecutor,
         directoryCopier);
 
+    this.replicationJobRegistryReportInterval = 1000
+        * conf.getLong(ConfigurationKeys.REPLICATION_JOB_REGISTRY_REPORT_INTERVAL_SEC,
+        60);
 
     this.startAfterAuditLogId = startAfterAuditLogId;
 
@@ -492,7 +497,8 @@ public class ReplicationServer implements TReplicationService.Iface {
             Long.toString(auditLogEntries.get(auditLogEntries.size() - 1).getId()));
         updateTimeForLastPersistedId = System.currentTimeMillis();
       }
-      if (System.currentTimeMillis() - lastReportedMetricsReplicationJob > 60000) {
+      if (System.currentTimeMillis() - lastReportedMetricsReplicationJob
+          > replicationJobRegistryReportInterval) {
         jobRegistry.reportStats();
         lastReportedMetricsReplicationJob = System.currentTimeMillis();
       }
