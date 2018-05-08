@@ -406,6 +406,11 @@ public class ReplicationServer implements TReplicationService.Iface {
         ReplicationUtils.sleep(pollWaitTimeMs);
         continue;
       }
+      if (System.currentTimeMillis() - lastReportedMetricsReplicationJob
+          > replicationJobRegistryReportInterval) {
+        jobRegistry.reportStats();
+        lastReportedMetricsReplicationJob = System.currentTimeMillis();
+      }
 
       // Stop if we've had enough successful jobs - for testing purposes
       // only
@@ -496,11 +501,6 @@ public class ReplicationServer implements TReplicationService.Iface {
             LAST_PERSISTED_AUDIT_LOG_ID_KEY,
             Long.toString(auditLogEntries.get(auditLogEntries.size() - 1).getId()));
         updateTimeForLastPersistedId = System.currentTimeMillis();
-      }
-      if (System.currentTimeMillis() - lastReportedMetricsReplicationJob
-          > replicationJobRegistryReportInterval) {
-        jobRegistry.reportStats();
-        lastReportedMetricsReplicationJob = System.currentTimeMillis();
       }
     }
   }
