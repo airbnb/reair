@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Counters used to track the progress of replication.
+ * Counters used to track the progress of replication within the app.
  */
 public class ReplicationCounters {
   public enum Type {
