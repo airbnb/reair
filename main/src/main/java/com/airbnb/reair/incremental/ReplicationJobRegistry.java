@@ -20,6 +20,7 @@ import java.util.stream.Collector;
  * Keeps track of a set of jobs.
  */
 public class ReplicationJobRegistry {
+  // Report number of job above each threshold (in seconds)
   private static final long[] DEFAULT_THRESHOLDS = {1800, 3600, 7200, 10800, 21600};
 
   private static long MAX_RETIRED_JOBS = 200;
@@ -105,7 +106,9 @@ public class ReplicationJobRegistry {
   }
 
   /**
-   * Report stats on the age of replication jobs based on fixed thresholds.
+   * Report stats on the age of replication jobs based on thresholds in seconds.
+   * If the jobs have a delay of 1, 5, 10 seconds, and the thresholds are {2, 6}, we would report
+   * {2: 2, 6: 1}
    */
   public synchronized void reportStats() {
     long now = System.currentTimeMillis();

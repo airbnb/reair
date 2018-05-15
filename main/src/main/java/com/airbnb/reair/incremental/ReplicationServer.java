@@ -398,7 +398,7 @@ public class ReplicationServer implements TReplicationService.Iface {
     // This is the time that the last persisted id was updated in the store.
     // It's tracked to rate limit the number of updates that are done.
     long updateTimeForLastPersistedId = 0;
-    long lastReportedMetricsReplicationJob = 0;
+    long lastReportedMetricsTimeReplicationJob = 0;
 
     while (true) {
       if (pauseRequested) {
@@ -406,10 +406,10 @@ public class ReplicationServer implements TReplicationService.Iface {
         ReplicationUtils.sleep(pollWaitTimeMs);
         continue;
       }
-      if (System.currentTimeMillis() - lastReportedMetricsReplicationJob
+      if (System.currentTimeMillis() - lastReportedMetricsTimeReplicationJob
           > replicationJobRegistryReportInterval) {
         jobRegistry.reportStats();
-        lastReportedMetricsReplicationJob = System.currentTimeMillis();
+        lastReportedMetricsTimeReplicationJob = System.currentTimeMillis();
       }
 
       // Stop if we've had enough successful jobs - for testing purposes
