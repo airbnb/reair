@@ -108,18 +108,15 @@ public class ReplicationJobRegistry {
    * Report stats on the age of replication jobs based on fixed thresholds.
    */
   public synchronized void reportStats() {
-    long now = System.currentTimeMillis() / 1000;
+    long now = System.currentTimeMillis();
     Map<Long, Integer> mapCount = new HashMap<>();
     for (Long value: thresholds) {
       mapCount.put(value, 0);
     }
     for (ReplicationJob job : idToReplicationJob.values()) {
-      if (job.getPersistedJobInfo().getSrcObjectTldt().isPresent()) {
-        long time = Long.parseLong(job.getPersistedJobInfo().getSrcObjectTldt().get());
-        for (Long value: thresholds) {
-          if (now - time > value) {
-            mapCount.put(value, mapCount.get(value) + 1);
-          }
+      for (Long value: thresholds) {
+        if ((now - job.getPersistedJobInfo().getCreateTime()) / 1000 > value) {
+          mapCount.put(value, mapCount.get(value) + 1);
         }
       }
     }

@@ -65,7 +65,7 @@ public class PersistedJobInfo {
    * Constructor for a persisted job info.
    *
    * @param id unique ID for this job
-   * @param createTime time that the job was created
+   * @param createTime time that the job was created in millis (rounded to nearest 1000)
    * @param operation the type of operation that the job performs
    * @param status the status of the job
    * @param srcPath the path of the source object
