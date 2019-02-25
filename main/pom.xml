@@ -117,7 +117,7 @@
         <dependency>
             <groupId>org.apache.thrift</groupId>
             <artifactId>libthrift</artifactId>
-            <version>0.9.1</version>
+            <version>0.12.0</version>
             <scope>compile</scope>
             <!-- We only need the Thrift classes, not the transitive dependencies. -->
             <exclusions>
