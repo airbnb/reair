@@ -1,5 +1,6 @@
 package com.airbnb.reair.multiprocessing;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -13,9 +14,10 @@ public class Worker<T extends Job> extends Thread {
 
   private static final Log LOG = LogFactory.getLog(Worker.class);
 
-  private static int nextWorkerId = 0;
+  private static final AtomicInteger nextWorkerId = new AtomicInteger(0);
 
-  private int workerId;
+  private final String defaultWorkerName;
+
   private BlockingQueue<T> inputQueue;
   private ParallelJobExecutor parallelJobExecutor;
   private Job job = null;
@@ -27,11 +29,7 @@ public class Worker<T extends Job> extends Thread {
    * @param parallelJobExecutor the executor to notify when the job is done
    */
   public Worker(BlockingQueue<T> inputQueue, ParallelJobExecutor parallelJobExecutor) {
-    this.inputQueue = inputQueue;
-    this.workerId = nextWorkerId++;
-    this.parallelJobExecutor = parallelJobExecutor;
-    setName(Worker.class.getSimpleName() + "-" + workerId);
-    setDaemon(true);
+    this(Worker.class.getSimpleName(), inputQueue, parallelJobExecutor);
   }
 
   /**
@@ -47,10 +45,20 @@ public class Worker<T extends Job> extends Thread {
       BlockingQueue<T> inputQueue,
       ParallelJobExecutor parallelJobExecutor) {
     this.inputQueue = inputQueue;
-    this.workerId = nextWorkerId++;
     this.parallelJobExecutor = parallelJobExecutor;
-    setName(workerNamePrefix + "-" + workerId);
+    defaultWorkerName = workerNamePrefix + "-" + nextWorkerId.getAndIncrement();
+    setName(defaultWorkerName);
     setDaemon(true);
+  }
+
+  private void setWorkerJobName(final Job theJob) {
+    if (theJob != null) {
+      this.setName(defaultWorkerName + "-" + theJob.toString());
+    }
+  }
+
+  private void resetWorkerName() {
+    this.setName(defaultWorkerName);
   }
 
   @Override
@@ -64,6 +72,7 @@ public class Worker<T extends Job> extends Thread {
           LOG.debug("Using existing job");
         }
         LOG.debug("**** Running job: " + job + " ****");
+        this.setWorkerJobName(job);
         int ret = job.run();
         if (ret != 0) {
           LOG.error("Error running job " + job + " return code: " + ret);
@@ -72,9 +81,11 @@ public class Worker<T extends Job> extends Thread {
         LOG.debug("**** Done running job: " + job + " ****");
         parallelJobExecutor.notifyDone(job);
         job = null;
+        resetWorkerName();
       }
     } catch (InterruptedException e) {
       LOG.debug("Got interrupted");
+      resetWorkerName();
     } // Any other exception should cause the process to exit via uncaught exception handler
   }
 
