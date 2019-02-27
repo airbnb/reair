@@ -1,10 +1,10 @@
 package com.airbnb.reair.multiprocessing;
 
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Executes a job in a thread. The job is required to return a return code of 0 or else an exception
