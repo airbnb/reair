@@ -1,7 +1,6 @@
 package com.airbnb.reair.hive.hooks;
 
 import com.airbnb.reair.db.DbCredentials;
-import com.airbnb.reair.utils.RetryableTask;
 import com.airbnb.reair.utils.RetryingTaskRunner;
 
 import org.apache.hadoop.conf.Configuration;
@@ -52,6 +51,7 @@ public class MetastoreAuditLogListener extends MetaStoreEventListener {
       "airbnb.reair.metastore.audit_log.jdbc_url";
 
   protected DbCredentials dbCredentials;
+  protected Connection dbConnection;
 
   /**
    * Constructor which defines the relevant DB credentials.
@@ -313,14 +313,6 @@ public class MetastoreAuditLogListener extends MetaStoreEventListener {
         conf
     );
 
-    final String jdbcUrl = conf.get(JDBC_URL_KEY);
-
-    if (jdbcUrl == null) {
-      throw new ConfigurationException(
-        JDBC_URL_KEY + " is not defined in the conf!"
-      );
-    }
-
     RetryingTaskRunner runner = new RetryingTaskRunner(
         NUM_ATTEMPTS,
         BASE_SLEEP
@@ -329,15 +321,10 @@ public class MetastoreAuditLogListener extends MetaStoreEventListener {
     long startTime = System.currentTimeMillis();
     LOG.debug("Starting insert into metastore audit log");
 
-    runner.runWithRetries(new RetryableTask() {
-      @Override
-      public void run() throws Exception {
-        Connection connection = DriverManager.getConnection(
-            jdbcUrl,
-            dbCredentials.getReadWriteUsername(),
-            dbCredentials.getReadWritePassword()
-        );
+    runner.runWithRetries(() -> {
+      Connection connection = getConnection();
 
+      synchronized (connection) {
         connection.setTransactionIsolation(
             Connection.TRANSACTION_READ_COMMITTED
         );
@@ -372,5 +359,26 @@ public class MetastoreAuditLogListener extends MetaStoreEventListener {
             System.currentTimeMillis() - startTime
         )
     );
+  }
+
+  private synchronized Connection getConnection() throws Exception {
+    if (dbConnection == null) {
+      HiveConf conf = (HiveConf) getConf();
+      String jdbcUrl = conf.get(JDBC_URL_KEY);
+
+      if (jdbcUrl == null) {
+        throw new ConfigurationException(
+            JDBC_URL_KEY + " is not defined in the conf!"
+        );
+      }
+
+      dbConnection = DriverManager.getConnection(
+          jdbcUrl,
+          dbCredentials.getReadWriteUsername(),
+          dbCredentials.getReadWritePassword()
+      );
+    }
+
+    return dbConnection;
   }
 }
