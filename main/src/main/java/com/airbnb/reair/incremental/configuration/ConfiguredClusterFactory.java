@@ -55,6 +55,10 @@ public class ConfiguredClusterFactory implements ClusterFactory {
         ConfigurationKeys.DEST_HDFS_ROOT);
     String destHdfsTmp = conf.get(
         ConfigurationKeys.DEST_HDFS_TMP);
+    // Note that the DEST_CLUSTER_METASTORE_DB_PREFIX is a special config that only exists on the
+    // dest cluster (but not on the src cluster).
+    String destDbPrefix = conf.get(
+        ConfigurationKeys.DEST_CLUSTER_METASTORE_DB_PREFIX);
     return new HardCodedCluster(
         destClusterName,
         destMetastoreUrl.getHost(),
@@ -62,7 +66,8 @@ public class ConfiguredClusterFactory implements ClusterFactory {
         null,
         null,
         new Path(destHdfsRoot),
-        new Path(destHdfsTmp));
+        new Path(destHdfsTmp),
+        destDbPrefix);
   }
 
   @Override
